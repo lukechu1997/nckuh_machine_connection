@@ -10,27 +10,32 @@ class UiFunc:
     # self.sqliteModel = sqliteModel.SqliteModel()    
     self.wigets = wigets
     self.funcInit()
-    self.serialInit()
     
-  def serialInit(self):
+  def serialInit(self, uiWigets):
     availablePorts = QtSerialPort.QSerialPortInfo.availablePorts()
-    self.serial = QtSerialPort.QSerialPort()
+    for port in availablePorts:
+      uiWigets.serialPortOption.addItem(port.portName())
     
-  def changeSerialPortName(self): 
-    print('change serial port')
-    # if(self.serial.isOpen()):
-    #   self.serial.close()
+    self.serial = QtSerialPort.QSerialPort()
 
-    # self.serial.setPortName('')
+    # serialPortName = uiWigets.serialPortOption.currentText()
+    uiWigets.buttonBox.accepted.connect(lambda:self.changeSerialPortName(uiWigets.serialPortOption.currentText()))
+    
+  def changeSerialPortName(self, port): 
+    print(f'change serial port to {port}')
+    if(self.serial.isOpen()):
+      self.serial.close()
 
-    # self.serial.setBaudRate(9600)
-    # self.serial.setDataBits(QtSerialPort.QSerialPort.DataBits.Data8)
-    # self.serial.setParity(QtSerialPort.QSerialPort.Parity.NoParity)
-    # self.serial.setStopBits(QtSerialPort.QSerialPort.StopBits.OneStop)
-    # self.serial.setFlowControl(QtSerialPort.QSerialPort.FlowControl.NoFlowControl)
+    self.serial.setPortName(port)
 
-    # if not self.serial.open(QIODeviceBase.OpenModeFlag.ReadWrite):
-    #   print("错误", "打开串口失败:" + self.serial.errorString())
+    self.serial.setBaudRate(9600)
+    self.serial.setDataBits(QtSerialPort.QSerialPort.DataBits.Data8)
+    self.serial.setParity(QtSerialPort.QSerialPort.Parity.NoParity)
+    self.serial.setStopBits(QtSerialPort.QSerialPort.StopBits.OneStop)
+    self.serial.setFlowControl(QtSerialPort.QSerialPort.FlowControl.NoFlowControl)
+
+    if not self.serial.open(QIODeviceBase.OpenModeFlag.ReadWrite):
+      print("错误", "打开串口失败:" + self.serial.errorString())
 
   def onClickConfirmBtn(self):
     print('clicked')

@@ -28,15 +28,15 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         self.ui = mainDialog()
         self.ui.setupUi(self)
-        UiFunc(self.ui)
+        self.mainFunc = UiFunc(self.ui)
         self.ui.option.clicked.connect(lambda:self.showOption())
 
     def showOption(self):
         self.window = QDialog()
-        self.ui = optionDialog()
-        self.ui.setupUi(self.window)
-        self.ui.buttonBox.accepted.connect(lambda:print('accept'))
-        self.window.show()
+        self.dialog = optionDialog()
+        self.dialog.setupUi(self.window)
+        self.window.show()   
+        self.mainFunc.serialInit(self.dialog)
 
 if __name__ == '__main__':
     initializeFolder()
