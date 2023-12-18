@@ -42,10 +42,10 @@
   <widget class="QPushButton" name="confirmBtn">
    <property name="geometry">
     <rect>
-     <x>850</x>
-     <y>260</y>
-     <width>81</width>
-     <height>20</height>
+     <x>840</x>
+     <y>250</y>
+     <width>91</width>
+     <height>41</height>
     </rect>
    </property>
    <property name="text">
@@ -62,13 +62,13 @@
     </rect>
    </property>
   </widget>
-  <widget class="QPushButton" name="searchTests">
+  <widget class="QPushButton" name="searchBtn">
    <property name="geometry">
     <rect>
      <x>850</x>
-     <y>140</y>
+     <y>130</y>
      <width>75</width>
-     <height>23</height>
+     <height>41</height>
     </rect>
    </property>
    <property name="cursor">
@@ -131,6 +131,11 @@
    </property>
    <column>
     <property name="text">
+     <string/>
+    </property>
+   </column>
+   <column>
+    <property name="text">
      <string>編號</string>
     </property>
    </column>
@@ -160,7 +165,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>選項</string>
+    <string>選擇串口</string>
    </property>
   </widget>
  </widget>
