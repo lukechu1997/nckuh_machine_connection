@@ -5,7 +5,7 @@ class MdbModel:
     def __init__(self):
         connStr = (
             r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
-            r"DBQ=.\\db\\Automation.mdb;"
+            r"DBQ=C:\\Program Files\\G1200\\dbs\\Automation.mdb;"
         )
         self.conn = pyodbc.connect(connStr)
         self.cursor = self.conn.cursor()
@@ -14,14 +14,8 @@ class MdbModel:
         self, 
         startDate = (datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y-%m-%d'),
         endDate = datetime.date.today()
-        # query = {
-        #     "startDate": 
-        #     "endDate": datetime.date.today()
-        # }
     ):
-        # print(query)
         queryStr = 'SELECT * FROM Test WHERE [TX_TIME] BETWEEN ? AND ?;'
-        # startDate, endDate = query
         self.cursor.execute(queryStr, startDate, endDate)
         columns = [column[0] for column in self.cursor.description]
         data = []
@@ -40,6 +34,15 @@ class MdbModel:
         self.cursor.commit()
 
     def resultInsert(self, dataDict = {}):
+        queryStr = 'INSERT INTO Result (?) VALUES (?)'
+        self.cursor.execute(
+            queryStr,
+            ', '.join(dataDict.keys()),
+            ', '.join(dataDict.values())
+        )
+        self.cursor.commit()
+    
+    def resultUpdate(self, data):
         queryStr = 'INSERT INTO Result (?) VALUES (?)'
         self.cursor.execute(
             queryStr,
