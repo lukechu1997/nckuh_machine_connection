@@ -3,7 +3,7 @@ import sqlite3
 class SqliteModel:
     def __init__(self):
         try:
-            conn = sqlite3.connect('./db/g1200.db')
+            conn = sqlite3.connect('C:\\Projects\\新增資料夾\\nckuh_machine_connection\\db\\g1200.db')
             self.conn = conn
             self.cursorObj = conn.cursor()
         except sqlite3.Error:
@@ -16,8 +16,15 @@ class SqliteModel:
         self.cursorObj.execute('''
             CREATE TABLE if not exists tests(
                 id INTEGER PRIMARY KEY,
+                sect_no TEXT,
+                spec_kind TEXT,
+                spec_no TEXT,
+                sample_type TEXT,
+                request_no TEXT,
+                chart_no TEXT,
                 name TEXT,
-                serial_no TEXT,
+                sno TEXT,
+                bottle_id TEXT,
                 create_time DATETIME DEFAULT (datetime(CURRENT_TIMESTAMP, 'localtime'))
             );
         ''')
@@ -25,8 +32,27 @@ class SqliteModel:
         self.cursorObj.execute('''
             CREATE TABLE if not exists results(
                 id INTEGER PRIMARY KEY,
-                data TEXT,
-                uploaded NUMERIC,
+                category TEXT,
+                sample_no INTEGER,
+                sequence_no INTEGER,
+                patient_id INTEGER,
+                rack_id INTEGER,
+                position INTEGER,
+                sample_type TEXT,
+                control_lot INTEGER,
+                manual_dilution INTEGER,
+                comment TEXT,
+                analyte_no INTEGER,
+                count_value INTEGER,
+                concentration_value INTEGER,
+                judgment TEXT,
+                remark TEXT,
+                auto_dilution_ratio INTEGER,
+                cartridge_lot_no INTEGER,
+                substrate_lot_no INTEGER,
+                measurement_date TEXT,
+                measuring_time TEXT,
+                uploaded NUMERIC DEFAULT 0,
                 fk_test_id INTEGER,
                 create_time DATETIME DEFAULT (datetime(CURRENT_TIMESTAMP, 'localtime')),
                 FOREIGN KEY (fk_test_id) REFERENCES tests(id)
@@ -57,6 +83,18 @@ class SqliteModel:
 
         self.conn.commit()
         return dataList
+    
+    def updateResults(self, id, data):
+        setStr = ','.join(map(lambda items: '='.join(items), data.items()))
+        self.cursorObj.execute(f'''
+            UPDATE results
+            SET {setStr}
+            WHERE 
+        ''')
+        print(f'''
+            UPDATE results
+            SET {setStr}              
+        ''')
     
     def listTables(self):
         self.cursorObj.execute('SELECT name FROM sqlite_schema WHERE type ="table" AND name NOT LIKE "sqlite_%";')
