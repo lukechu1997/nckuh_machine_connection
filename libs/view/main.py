@@ -1,4 +1,4 @@
-from ..helpers import serialHelper
+from ..helpers.serialHelper import SerialHelper
 from ..model import mdbModel, sqliteModel
 from datetime import date, timedelta
 from PyQt6.QtWidgets import  QTableWidgetItem, QDialog
@@ -43,14 +43,16 @@ class UiFunc:
     #     'txTime': data['TX_TIME'].strftime('%Y/%m/%d %H:%M:%S')
     #   })
 
-  def __serialReadyRead(self, wigets):
+  def __serialReadyRead(self):
     buffer = self.serial.read(1024)
     buffer = buffer.decode("UTF-8")
     time = QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss  ")
-    wigets.textBrowser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    self.optionWigets.textBrowser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
     tc = self.textBrowser.textCursor()
     tc.movePosition(QtGui.QTextCursor.MoveOperation.End)
     tc.insertText(time + buffer)
+    serialHelper = SerialHelper(self.serial)
+    serialHelper.main(buffer)
 
   def __queryDateTimeInit(self):
     startDate = date.today()
@@ -64,12 +66,11 @@ class UiFunc:
       wigets.serialPortOption.addItem(port.portName())
     
     self.serial = QtSerialPort.QSerialPort()
-
+    self.optionWigets = wigets
     wigets.selectPort.clicked.connect(lambda:self.changeSerialPortName(wigets.serialPortOption.currentText()))
-    self.serial.readyRead.connect(self.__serialReadyRead(wigets))
+    self.serial.readyRead.connect(self.__serialReadyRead)
 
   def changeSerialPortName(self, port): 
-    # print(f'change serial port to {port}')
     if(self.serial.isOpen()):
       self.serial.close()
 
@@ -84,9 +85,6 @@ class UiFunc:
     if not self.serial.open(QIODeviceBase.OpenModeFlag.ReadWrite):
       print("错误", "打开串口失败:" + self.serial.errorString())
 
-    # serialHelper(self.serial)
-    # self.serial.readyRead.connect(self.__serialReadyRead())
-
   def onClickConfirmBtn(self):
     print('clicked')
 
@@ -97,6 +95,5 @@ class UiFunc:
   def funcInit(self): 
     print('func init')
     self.__queryDateTimeInit()
-    # self.wigets.option.clicked.connect(lambda:self.onClickOptionBtn())
     # self.wigets.confirmBtn.clicked.connect(lambda:self.onClickConfirmBtn())
     self.wigets.searchBtn.clicked.connect(lambda:self.onClickSearchBtn())
