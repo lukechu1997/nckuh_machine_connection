@@ -3,12 +3,17 @@ import datetime
 
 class MdbModel:
     def __init__(self):
-        connStr = (
-            r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
-            r"DBQ=C:\\Program Files\\G1200\\dbs\\Automation.mdb;"
-        )
-        self.conn = pyodbc.connect(connStr)
-        self.cursor = self.conn.cursor()
+        try:
+            connStr = (
+                r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
+                r"DBQ=C:\\Program Files\\G1200\\dbs\\Automation.mdb;"
+            )
+            self.conn = pyodbc.connect(connStr)
+            self.cursor = self.conn.cursor()
+        except Exception:
+            print('Exception', Exception)
+
+    def 
 
     def testFindMany(
         self, 
@@ -42,7 +47,7 @@ class MdbModel:
         )
         self.cursor.commit()
     
-    def resultUpdate(self, data):
+    def resultUpdate(self, dataDict):
         queryStr = 'INSERT INTO Result (?) VALUES (?)'
         self.cursor.execute(
             queryStr,

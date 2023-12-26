@@ -44,13 +44,13 @@ class UiFunc:
     #   })
 
   def __serialReadyRead(self):
-    buffer = self.serial.read(1024)
-    buffer = buffer.decode("UTF-8")
+    buffer = self.serial.readAll()
+    # buffer = buffer.decode("UTF-8")
     time = QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss  ")
     self.optionWigets.textBrowser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
     tc = self.textBrowser.textCursor()
     tc.movePosition(QtGui.QTextCursor.MoveOperation.End)
-    tc.insertText(time + buffer)
+    tc.insertText(time + str(buffer))
     serialHelper = SerialHelper(self.serial)
     serialHelper.main(buffer)
 
