@@ -3,7 +3,7 @@ import sqlite3
 class SqliteModel:
     def __init__(self):
         try:
-            conn = sqlite3.connect('C:\\Projects\\新增資料夾\\nckuh_machine_connection\\db\\g1200.db')
+            conn = sqlite3.connect('db/g1200.db')
             self.conn = conn
             self.cursorObj = conn.cursor()
         except sqlite3.Error:
@@ -28,7 +28,6 @@ class SqliteModel:
                 create_time DATETIME DEFAULT (datetime(CURRENT_TIMESTAMP, 'localtime'))
             );
         ''')
-        # 將data拆分
         self.cursorObj.execute('''
             CREATE TABLE if not exists results(
                 id INTEGER PRIMARY KEY,
@@ -89,11 +88,27 @@ class SqliteModel:
         self.cursorObj.execute(f'''
             UPDATE results
             SET {setStr}
-            WHERE 
+            WHERE ID = {id}
         ''')
         print(f'''
             UPDATE results
             SET {setStr}              
+        ''')
+
+    def insertTests(self, data):
+        columns = ','.join(data.keys())
+        values = ','.join(data.vakyes())
+        self.cursorObj.execute(f'''
+            INSERT INTO tests ({columns})
+            VALUES ({values});
+        ''')
+    
+    def insertResults(self, data):
+        columns = ','.join(data.keys())
+        values = ','.join(data.vakyes())
+        self.cursorObj.execute(f'''
+            INSERT INTO results ({columns})
+            VALUES ({values});
         ''')
     
     def listTables(self):

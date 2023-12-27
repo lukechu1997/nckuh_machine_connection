@@ -1,3 +1,4 @@
+import os
 from ..helpers.serialHelper import SerialHelper
 from ..model import mdbModel, sqliteModel
 from datetime import date, timedelta
@@ -13,7 +14,8 @@ class UiFunc:
     self.sqliteModel = sqliteModel.SqliteModel()    
     self.wigets = wigets
     self.funcInit()
-    print('current time: ', QDateTime.currentDateTime())
+    # print('current time: ', QDateTime.currentDateTime())
+    print('sqlite: ', os.environ.get("sqlite"))
 
   def __searchResults(self):
     startDate = self.wigets.testsStartDate.date().toString('yyyy-MM-dd')
@@ -44,11 +46,15 @@ class UiFunc:
     #   })
 
   def __serialReadyRead(self):
+    # buffer = self.serial.read(1024)
     buffer = self.serial.readAll()
-    # buffer = buffer.decode("UTF-8")
+    # buffer = buffer.decode("ascii")
+    print('msg type: ', type(buffer))
+    # buffer = str(buffer)
+    print('buffer: ', buffer)
     time = QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss  ")
     self.optionWigets.textBrowser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-    tc = self.textBrowser.textCursor()
+    tc = self.optionWigets.textBrowser.textCursor()
     tc.movePosition(QtGui.QTextCursor.MoveOperation.End)
     tc.insertText(time + str(buffer))
     serialHelper = SerialHelper(self.serial)
