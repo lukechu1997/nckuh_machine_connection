@@ -17,19 +17,23 @@ class SerialHelper:
     data = rawData.decode("UTF-8")
     logging.info(data)
     match data:
-      case b'\\x05':
-        self.serial.write(b'\\x06')
+      case b'\x04':
+        logging.info('[EOT]')
+      case b'\x05':
+        self.sendSingle('ACK')
+        logging.info('[ENQ]')
+      case b'\x06':
+        self.sendSingle('EOT')
+        logging.info('[ACK]')
       case _:
         self.readComplicatedData(data)
 
   def readComplicatedData(self, data):
-    dataList = data.split(' ')
-
-    match dataList[0]:
+    match data[0]:
       case 'R':
-        print('R')
+        self.receiveQuery(data)
       case 'D':
-        print('D')
+        self.receiveResult(data)
       case 'S':
         print('S')
       case _:
@@ -59,6 +63,11 @@ class SerialHelper:
   def sendStatusQuery(self): 
     self.serial.write(self._formatOutput('Q1'.encode().hex()))
 
+  def receiveQuery(self, data):
+    keys = [
+      'message_id', 'analyzer_id', 'patient_id', 'reck_id', 'sample_no', 'sample_category'
+    ]
+
   def receiveResult(self, data):
     keys = [
       'message_id', 'analyzer_id', 'specimen_category', 'sample_no', 'sequence_no', 
@@ -67,6 +76,22 @@ class SerialHelper:
       'judgment', 'remark', 'auto_dilution_ratio', 'cartridge_lot_no', 'substrate_lot_no',
       'measurement_date', 'measuring_time'
     ]
+
+  def receiveStatus(self, data):
+    dataDect = {
+      'message_id': data[0], 
+      'analyzer_id': data[1], 
+      'status': data[2]
+    }
+
+  def sendSingle(self, type):
+    match type:
+      case 'ACK':
+        self.serial.write(b'\x06')
+      case 'EOT':
+        self.serial.write(b'\x04')
+      case 'ENQ':
+        self.serial.write(b'\x05')
 
 if __name__ == '__main__':
     print('serial helper')

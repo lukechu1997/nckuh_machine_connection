@@ -1,9 +1,10 @@
 import sqlite3
+import os
 
 class SqliteModel:
     def __init__(self):
         try:
-            conn = sqlite3.connect('db/g1200.db')
+            conn = sqlite3.connect(os.environ.get('SQLITE_PATH'))
             self.conn = conn
             self.cursorObj = conn.cursor()
         except sqlite3.Error:

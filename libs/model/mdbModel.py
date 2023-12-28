@@ -1,19 +1,35 @@
-import pyodbc
 import datetime
+import dotenv
+import logging
+import pyodbc
+import os
 
 class MdbModel:
     def __init__(self):
         try:
+            accessPath = os.environ.get('ACCESS_PATH')
             connStr = (
                 r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
-                r"DBQ=C:\\Program Files\\G1200\\dbs\\Automation.mdb;"
+                f"DBQ={accessPath};"
             )
             self.conn = pyodbc.connect(connStr)
             self.cursor = self.conn.cursor()
         except Exception:
             print('Exception', Exception)
 
-    def 
+    def updateAccessPath(self, accessPath):
+        try:
+            self.conn.close()
+            connStr = (
+                r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
+                f"DBQ={accessPath};"
+            )
+            self.conn = pyodbc.connect(connStr)
+            self.cursor = self.conn.cursor()
+            dotenv.set_key('.env', 'ACCESS_PATH', accessPath)
+        except Exception:
+            logging.critical(Exception)
+            print('Exception: ', Exception)
 
     def testFindMany(
         self, 
