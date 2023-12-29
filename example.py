@@ -143,12 +143,9 @@ class Ui_Form(object):
             else:
                 QtWidgets.QMessageBox.critical(self.form,"错误","打开串口失败:"+self.serial.errorString())
 
-
-
-
     def btnSendClick(self):
         text = self.textEdit.toPlainText()
-        textByte = text.encode("UTF-8")
+        textByte = text.encode("ascii")
         self.serial.write(textByte)
     def btnClearClick(self):
         self.textEdit.clear()

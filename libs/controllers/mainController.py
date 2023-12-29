@@ -1,4 +1,5 @@
 import os
+from .optionController import OptionController
 from ..helpers.serialHelper import SerialHelper
 from ..model import mdbModel, sqliteModel
 from ..view.option import Ui_Dialog as optionDialog
@@ -7,9 +8,7 @@ from PyQt6.QtWidgets import  QTableWidgetItem, QDialog
 from PyQt6 import QtSerialPort, QtGui
 from PyQt6.QtCore import QIODeviceBase, QDateTime, Qt
 
-# import libs.option as option
-
-class UiFunc:
+class MainController:
   def __init__(self, wigets):
     # self.mdbModel = mdbModel.MdbModel()
     self.sqliteModel = sqliteModel.SqliteModel()    
@@ -45,21 +44,21 @@ class UiFunc:
     #     'txTime': data['TX_TIME'].strftime('%Y/%m/%d %H:%M:%S')
     #   })
 
-  def __serialReadyRead(self):
-    # buffer = self.serial.read(1024)
-    buffer = self.serial.readAll()
-    # buffer = buffer.decode("ascii")
-    print('msg type: ', type(buffer))
-    # buffer = str(buffer)
-    print('buffer: ', buffer)
-    print('decode to utf-8: ', buffer.decode('utf-8'))
-    time = QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss  ")
-    self.optionWigets.textBrowser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-    tc = self.optionWigets.textBrowser.textCursor()
-    tc.movePosition(QtGui.QTextCursor.MoveOperation.End)
-    tc.insertText(time + buffer.decode('utf-8'))
-    serialHelper = SerialHelper(self.serial)
-    serialHelper.main(buffer)
+  # def __serialReadyRead(self):
+  #   # buffer = self.serial.read(1024)
+  #   buffer = self.serial.readAll()
+  #   # buffer = buffer.decode("ascii")
+  #   print('msg type: ', type(buffer))
+  #   # buffer = str(buffer)
+  #   print('buffer: ', buffer)
+  #   print('decode to utf-8: ', buffer.decode('utf-8'))
+  #   time = QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss  ")
+  #   self.optionWigets.textBrowser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+  #   tc = self.optionWigets.textBrowser.textCursor()
+  #   tc.movePosition(QtGui.QTextCursor.MoveOperation.End)
+  #   tc.insertText(time + buffer.decode('utf-8'))
+  #   serialHelper = SerialHelper(self.serial)
+  #   serialHelper.main(buffer)
 
   def __queryDateTimeInit(self):
     startDate = date.today()
@@ -67,30 +66,30 @@ class UiFunc:
     self.wigets.testsStartDate.setDate(startDate)
     self.wigets.testsEndDate.setDate(endDate)
     
-  def serialInit(self, wigets):
-    availablePorts = QtSerialPort.QSerialPortInfo.availablePorts()
-    for port in availablePorts:
-      wigets.serialPortOption.addItem(port.portName())
+  # def serialInit(self, wigets):
+  #   availablePorts = QtSerialPort.QSerialPortInfo.availablePorts()
+  #   for port in availablePorts:
+  #     wigets.serialPortOption.addItem(port.portName())
     
-    self.serial = QtSerialPort.QSerialPort()
-    self.optionWigets = wigets
-    wigets.selectPort.clicked.connect(lambda:self.changeSerialPortName(wigets.serialPortOption.currentText()))
-    self.serial.readyRead.connect(self.__serialReadyRead)
+  #   self.serial = QtSerialPort.QSerialPort()
+  #   self.optionWigets = wigets
+  #   wigets.selectPort.clicked.connect(lambda:self.changeSerialPortName(wigets.serialPortOption.currentText()))
+  #   self.serial.readyRead.connect(self.__serialReadyRead)
 
-  def changeSerialPortName(self, port): 
-    if(self.serial.isOpen()):
-      self.serial.close()
+  # def changeSerialPortName(self, port): 
+  #   if(self.serial.isOpen()):
+  #     self.serial.close()
 
-    self.serial.setPortName(port)
+  #   self.serial.setPortName(port)
 
-    self.serial.setBaudRate(9600)
-    self.serial.setDataBits(QtSerialPort.QSerialPort.DataBits.Data8)
-    self.serial.setParity(QtSerialPort.QSerialPort.Parity.NoParity)
-    self.serial.setStopBits(QtSerialPort.QSerialPort.StopBits.OneStop)
-    self.serial.setFlowControl(QtSerialPort.QSerialPort.FlowControl.NoFlowControl)
+  #   self.serial.setBaudRate(9600)
+  #   self.serial.setDataBits(QtSerialPort.QSerialPort.DataBits.Data8)
+  #   self.serial.setParity(QtSerialPort.QSerialPort.Parity.NoParity)
+  #   self.serial.setStopBits(QtSerialPort.QSerialPort.StopBits.OneStop)
+  #   self.serial.setFlowControl(QtSerialPort.QSerialPort.FlowControl.NoFlowControl)
 
-    if not self.serial.open(QIODeviceBase.OpenModeFlag.ReadWrite):
-      print("错误", "打开串口失败:" + self.serial.errorString())
+  #   if not self.serial.open(QIODeviceBase.OpenModeFlag.ReadWrite):
+  #     print("错误", "打开串口失败:" + self.serial.errorString())
 
   def onClickConfirmBtn(self):
     print('clicked')
@@ -100,11 +99,12 @@ class UiFunc:
     self.__searchResults()
 
   def showOption(self):
+    print('open option dialog')
     self.window = QDialog()
-    self.dialog = optionDialog()
-    self.dialog.setupUi(self.window)
+    dialog = optionDialog()
+    dialog.setupUi(self.window)
     self.window.show()   
-    # self.mainFunc.serialInit(self.dialog)
+    OptionController(dialog)
 
   def funcInit(self): 
     print('func init')

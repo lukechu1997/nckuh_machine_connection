@@ -1,11 +1,15 @@
-# import pyodbc
 from datetime import date
+from PyQt6.QtCore import QThread
 from PyQt6.QtWidgets import QMainWindow, QApplication, QDialog
-import logging, os, sys
+# from libs.controllers.optionController import optionController
+from libs.controllers.mainController import MainController
 from libs.view.ui import Ui_dialog as mainDialog
 from libs.view.main import UiFunc
 from libs.view.option import Ui_Dialog as optionDialog
+import logging, os, sys
+import dotenv
 
+dotenv.load_dotenv('.env')
 basicPath = '.\\G1200'
 
 def initializeFolder() :
@@ -24,15 +28,8 @@ class MainWindow(QMainWindow):
     super(MainWindow, self).__init__()
     self.ui = mainDialog()
     self.ui.setupUi(self)
-    self.mainFunc = UiFunc(self.ui)
-    self.ui.option.clicked.connect(lambda:self.showOption())
-
-  def showOption(self):
-    self.window = QDialog()
-    self.dialog = optionDialog()
-    self.dialog.setupUi(self.window)
-    self.window.show()   
-    self.mainFunc.serialInit(self.dialog)
+    # self.mainFunc = UiFunc(self.ui)
+    self.mainController = MainController(self.ui)
 
 if __name__ == '__main__':
   initializeFolder()
