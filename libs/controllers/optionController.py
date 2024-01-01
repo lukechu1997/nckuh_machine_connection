@@ -13,7 +13,7 @@ class OptionController:
     
     self.__connectBtns()
     self.serial = QtSerialPort.QSerialPort()
-    SerialHelper(self.serial)
+    self.serialHelper = SerialHelper(self.serial)
     self.serial.readyRead.connect(self.__serialReadyRead)
     self.__setSerialPortName(os.environ.get('SERIAL_PORT'))
 
@@ -50,16 +50,19 @@ class OptionController:
     dotenv.set_key('.env', 'SERIAL_PORT', port)
 
   def __sendENQ(self):
-    print('enq')
+    print('send enq')
+    self.serial.write(b'\x05')
 
   def __sendACK(self):
-    print('enq')
+    print('send ack')
+    self.serial.write(b'\x06')
 
   def __sendEOT(self):
-    print('enq')
+    print('send eot')
+    self.serial.write(b'\x04')
 
   def __queryStatus(self):
-    print('enq')
+    self.serialHelper.sendStatusQuery()
     
   def __connectBtns(self):
     self._wigets.enqBtn.clicked.connect(lambda:self.__sendENQ())

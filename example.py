@@ -145,7 +145,7 @@ class Ui_Form(object):
 
     def btnSendClick(self):
         text = self.textEdit.toPlainText()
-        textByte = text.encode("ascii")
+        textByte = self.__formatOutput(text)
         self.serial.write(textByte)
     def btnClearClick(self):
         self.textEdit.clear()
@@ -154,7 +154,7 @@ class Ui_Form(object):
         buffer = self.serial.read(1024)
         buffer = buffer.decode("UTF-8")
         time = QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss  ")
-        # self.textBrowser.append(time+buffer)
+        self.textBrowser.append(time+buffer)
 
         self.textBrowser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         tc = self.textBrowser.textCursor()
@@ -175,6 +175,14 @@ class Ui_Form(object):
         self.btnSend.setText(_translate("Form", "发送"))
         self.btnClear.setText(_translate("Form", "清空"))
 
+    def __formatOutput(self, dataStr):
+        rawDataHex = dataStr.encode('ascii')
+        processedData = b'\x02' + rawDataHex + b'\x03'
+        bcc = 0
+        for i in range(0, len(processedData), 2):
+            bcc = bcc ^ processedData[i, i + 1]
+
+        return processedData + bcc
 
 if __name__ == '__main__':
     import sys
