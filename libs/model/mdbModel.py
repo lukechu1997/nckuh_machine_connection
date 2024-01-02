@@ -80,10 +80,3 @@ class MdbModel:
 if __name__ == '__main__':
     print('mdb connection')
     mdbModel = MdbModel()
-    # mdbModel.testUpdate(213439)
-    # mdbModel.resultInsert({
-    #     'a': '一',
-    #     'b': '二',
-    #     'c': '三'
-    # })
-    # print(mdbModel.testFindMany(query={"startDate": "2021-10-14", "endDate": "2021-10-16"}))

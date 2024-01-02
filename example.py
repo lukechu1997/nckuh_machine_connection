@@ -150,7 +150,6 @@ class Ui_Form(object):
     def btnClearClick(self):
         self.textEdit.clear()
     def serialReadyRead(self):
-        print('serialReadyRead', self.serial)
         buffer = self.serial.read(1024)
         buffer = buffer.decode("UTF-8")
         time = QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss  ")
@@ -176,13 +175,21 @@ class Ui_Form(object):
         self.btnClear.setText(_translate("Form", "清空"))
 
     def __formatOutput(self, dataStr):
-        rawDataHex = dataStr.encode('ascii')
-        processedData = b'\x02' + rawDataHex + b'\x03'
-        bcc = 0
+        rawDataHex = dataStr.encode('ascii').hex()
+        processedData = '02' + rawDataHex + '03'
+        bcc = int('00', 16)
+        # print(processedData.hex())
         for i in range(0, len(processedData), 2):
-            bcc = bcc ^ processedData[i, i + 1]
+            # print('old bcc', bcc)
+            # print(processedDataHex[i:i + 2], type(processedDataHex[i:i + 2]))
+            bcc = bcc ^ int(processedData[i:i + 1], 16)
+            # print('bcc', bcc)
 
-        return processedData + bcc
+        # print('processedData: ', processedData)
+        # print('bcc: ', bcc)
+        # print('data', processedData + str(bcc).rjust(2, '0'))
+
+        return bytearray.fromhex(processedData + str(bcc).rjust(2, '0'))
 
 if __name__ == '__main__':
     import sys

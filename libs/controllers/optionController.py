@@ -11,6 +11,7 @@ class OptionController:
     for port in availablePorts:
       self._wigets.serialPortOption.addItem(port.portName())
     
+    self._wigets.serialPortOption.setCurrentText(os.environ.get('SERIAL_PORT'))
     self.__connectBtns()
     self.serial = QtSerialPort.QSerialPort()
     self.serialHelper = SerialHelper(self.serial)
@@ -21,7 +22,7 @@ class OptionController:
     buffer = self.serial.read(1024)
     # buffer = self.serial.read(10)
     # buffer = buffer.decode("ascii")
-    print('msg type: ', type(buffer))
+    # print('msg type: ', type(buffer))
     # buffer = str(buffer)
     print('buffer: ', buffer)
     # print('decode to utf-8: ', buffer.decode('utf-8'))
@@ -29,7 +30,7 @@ class OptionController:
     self._wigets.textBrowser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
     tc = self._wigets.textBrowser.textCursor()
     tc.movePosition(QtGui.QTextCursor.MoveOperation.End)
-    tc.insertText(time + str(buffer))
+    tc.insertText(time + buffer.decode('utf-8'))
     serialHelper = SerialHelper(self.serial)
     serialHelper.main(buffer)
 

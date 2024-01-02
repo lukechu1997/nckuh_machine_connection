@@ -4,14 +4,18 @@ class SerialHelper:
   def __init__(self, serial):
     self.serial = serial
 
-  def _formatOutput(self, dataStr):
-    rawDataHex = dataStr.encode().hex()
+  def __formatOutput(self, dataStr):
+    rawDataHex = dataStr.encode('ascii').hex()
     processedData = '02' + rawDataHex + '03'
-    bcc = 0
+    bcc = int('00', 16)
     for i in range(0, len(processedData), 2):
-      bcc = bcc ^ processedData[i, i + 1]
+      bcc = bcc ^ int(processedData[i:i + 1], 16)
 
-    return processedData + bcc
+    return bytearray.fromhex(processedData + str(bcc).rjust(2, '0'))
+
+  def __trimIncomingData(self, rawData):
+    data = rawData.replace(b'\x02', b'').split(b'\x03')[0]
+    return data.decode('utf-8')
 
   def main(self, rawData):
     data = rawData.decode("UTF-8")
@@ -26,16 +30,17 @@ class SerialHelper:
         self.sendSingle('EOT')
         logging.info('[ACK]')
       case _:
-        self.readComplicatedData(data)
+        self.readComplicatedData(rawData)
 
-  def readComplicatedData(self, data):
+  def readComplicatedData(self, rawData):
+    data = self.__trimIncomingData(rawData)
     match data[0]:
       case 'R':
         self.receiveQuery(data)
       case 'D':
         self.receiveResult(data)
       case 'S':
-        print('S')
+        self.receiveStatus(data)
       case _:
         print('other')
 
@@ -57,16 +62,17 @@ class SerialHelper:
     }
 
     messageBodyStr = ''.join(messageBodyDict.values())
-    encodedStr = self._formatOutput(messageBodyStr)
+    encodedStr = self.__formatOutput(messageBodyStr)
     self.serial.write(bytes(encodedStr, 'ascii'))
 
   def sendStatusQuery(self): 
-    self.serial.write(self._formatOutput('Q1'.encode().hex()))
+    self.serial.write(self.__formatOutput('Q1'.encode().hex()))
 
   def receiveQuery(self, data):
     keys = [
       'message_id', 'analyzer_id', 'patient_id', 'reck_id', 'sample_no', 'sample_category'
     ]
+    print('query data:', data)
 
   def receiveResult(self, data):
     keys = [
@@ -76,6 +82,7 @@ class SerialHelper:
       'judgment', 'remark', 'auto_dilution_ratio', 'cartridge_lot_no', 'substrate_lot_no',
       'measurement_date', 'measuring_time'
     ]
+    print('result data:', data)
 
   def receiveStatus(self, data):
     dataDect = {
