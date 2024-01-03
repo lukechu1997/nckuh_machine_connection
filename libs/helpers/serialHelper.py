@@ -20,14 +20,14 @@ class SerialHelper:
   def main(self, rawData):
     data = rawData.decode("UTF-8")
     logging.info(data)
-    match data:
+    match rawData:
       case b'\x04':
         logging.info('[EOT]')
       case b'\x05':
         self.sendSingle('ACK')
         logging.info('[ENQ]')
       case b'\x06':
-        self.sendSingle('EOT')
+        # self.sendSingle('EOT')
         logging.info('[ACK]')
       case _:
         self.readComplicatedData(rawData)
@@ -45,6 +45,10 @@ class SerialHelper:
         print('other')
 
   def sendRequestMsg(self, data = {}):
+    self.sendSingle('ENQ')
+    # wait for ack
+
+    # write assay request
     messageBodyDict = {
       "messageId": "W",
       "analyzer_id": data['analyzerId'],
@@ -65,7 +69,19 @@ class SerialHelper:
     encodedStr = self.__formatOutput(messageBodyStr)
     self.serial.write(bytes(encodedStr, 'ascii'))
 
+    # self.serial.write(encodedStr)
+
+    # wait ack
+
+    # send eot
+
   def sendStatusQuery(self): 
+    self.sendSingle('ENQ')
+    # wait for ack
+    if self.serial.read(1024) == b'\x06':
+      print('receive ack')
+    # while True:
+    #     break
     self.serial.write(self.__formatOutput('Q1'.encode().hex()))
 
   def receiveQuery(self, data):
@@ -73,6 +89,12 @@ class SerialHelper:
       'message_id', 'analyzer_id', 'patient_id', 'reck_id', 'sample_no', 'sample_category'
     ]
     print('query data:', data)
+    logging.info(data)
+    self.sendSingle('ACK')
+    # wait eot (?)
+
+    # send request
+    # self.sendRequest
 
   def receiveResult(self, data):
     keys = [
@@ -83,6 +105,9 @@ class SerialHelper:
       'measurement_date', 'measuring_time'
     ]
     print('result data:', data)
+    logging.info(data)
+    self.sendSingle('ACK')
+    # wait eot (?)
 
   def receiveStatus(self, data):
     dataDect = {
@@ -90,6 +115,9 @@ class SerialHelper:
       'analyzer_id': data[1], 
       'status': data[2]
     }
+    logging.info(data)
+    self.sendSingle('ACK')
+    # wait eot (?)
 
   def sendSingle(self, type):
     match type:

@@ -20,6 +20,7 @@ class OptionController:
 
   def __serialReadyRead(self):
     buffer = self.serial.read(1024)
+    # print(self.serial.readAll())
     # buffer = self.serial.read(10)
     # buffer = buffer.decode("ascii")
     # print('msg type: ', type(buffer))
@@ -52,15 +53,19 @@ class OptionController:
 
   def __sendENQ(self):
     print('send enq')
-    self.serial.write(b'\x05')
+    self.serialHelper.sendSingle('ENQ')
+    # self.serial.write(b'\x05')
 
   def __sendACK(self):
     print('send ack')
-    self.serial.write(b'\x06')
+    self.serialHelper.sendSingle('ACK')
+
+    # self.serial.write(b'\x06')
 
   def __sendEOT(self):
     print('send eot')
-    self.serial.write(b'\x04')
+    self.serialHelper.sendSingle('EOT')
+    # self.serial.write(b'\x04')
 
   def __queryStatus(self):
     self.serialHelper.sendStatusQuery()

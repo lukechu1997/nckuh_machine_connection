@@ -30,7 +30,8 @@ class MainWindow(QMainWindow):
     self.ui.setupUi(self)
     # self.mainFunc = UiFunc(self.ui)
     self.mainController = MainController(self.ui)
-
+# thread 1
+# query automation mdb every 15 mins
 if __name__ == '__main__':
   initializeFolder()
   FORMAT = '%(asctime)s %(levelname)s: %(message)s'
