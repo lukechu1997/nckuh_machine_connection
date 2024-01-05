@@ -1,45 +1,62 @@
 import logging
+from ..model.sqliteModel import SqliteModel
 
 class SerialHelper:
   def __init__(self, serial):
     self.serial = serial
+    self.sqlite = SqliteModel()
+    self.tempData = ''
+    self.status = 'IDLE'
 
   def __formatOutput(self, dataStr):
     rawDataHex = dataStr.encode('ascii').hex()
-    processedData = '02' + rawDataHex + '03'
-    bcc = int('00', 16)
+    processedData = rawDataHex + '03'
+    bcc = hex(0)
     for i in range(0, len(processedData), 2):
-      bcc = bcc ^ int(processedData[i:i + 1], 16)
+        bcc = hex(int(bcc, 16) ^ int(processedData[i:i + 2], 16))
 
-    return bytearray.fromhex(processedData + str(bcc).rjust(2, '0'))
+    return bytearray.fromhex('02' + processedData + bcc[2:].encode('ascii').hex())
 
   def __trimIncomingData(self, rawData):
     data = rawData.replace(b'\x02', b'').split(b'\x03')[0]
     return data.decode('utf-8')
+  
+  def __trimSpaces(self, data):
+    return data.replace(' ', '')
 
   def main(self, rawData):
-    data = rawData.decode("UTF-8")
-    logging.info(data)
+    # print('main', rawData.decode("UTF-8"))
+    # estabilish connection
     match rawData:
       case b'\x04':
         logging.info('[EOT]')
+        if self.status == 'REQUEST':
+          self.sendRequestMsg({})
+        return
       case b'\x05':
         self.sendSingle('ACK')
         logging.info('[ENQ]')
+        return
       case b'\x06':
         # self.sendSingle('EOT')
         logging.info('[ACK]')
       case _:
-        self.readComplicatedData(rawData)
+        self.tempData = self.tempData + rawData.decode("UTF-8")
+        print(self.tempData)
+        if b'\x03' in rawData:
+          self.readComplicatedData(rawData)
 
   def readComplicatedData(self, rawData):
     data = self.__trimIncomingData(rawData)
     match data[0]:
       case 'R':
+        self.status = 'QUERY'
         self.receiveQuery(data)
       case 'D':
+        self.status = 'RESULT'
         self.receiveResult(data)
       case 'S':
+        self.status = 'STATUS'
         self.receiveStatus(data)
       case _:
         print('other')
@@ -55,7 +72,7 @@ class SerialHelper:
       "specimen_category": data['specimenCategory'],
       "sample_no": data['sampleNo'],
       "patient_id": data['patientId'], 
-      "reck_id": data['reckId'], 
+      "rack_id": data['rackId'], 
       "position": data['position'], 
       "sample_type": data['sampleType'],
       "control_lot": data['controlLot'],
@@ -78,35 +95,51 @@ class SerialHelper:
   def sendStatusQuery(self): 
     self.sendSingle('ENQ')
     # wait for ack
-    if self.serial.read(1024) == b'\x06':
-      print('receive ack')
-    # while True:
-    #     break
-    self.serial.write(self.__formatOutput('Q1'.encode().hex()))
+    self.serial.write(self.__formatOutput('Q1'))
 
   def receiveQuery(self, data):
+    self.sendSingle('ACK')
     keys = [
-      'message_id', 'analyzer_id', 'patient_id', 'reck_id', 'sample_no', 'sample_category'
+      'message_id', 'analyzer_id', 'patient_id', 'rack_id', 'sample_no', 'sample_category'
     ]
     print('query data:', data)
     logging.info(data)
-    self.sendSingle('ACK')
-    # wait eot (?)
 
     # send request
+    self.status = 'REQUEST'
     # self.sendRequest
 
   def receiveResult(self, data):
-    keys = [
-      'message_id', 'analyzer_id', 'specimen_category', 'sample_no', 'sequence_no', 
-      'patient_id', 'reck_id', 'position', 'sample_type', 'control_lot',
-      'manual_dilution', 'comment', 'analyte_no', 'count_value', 'concentration_value',
-      'judgment', 'remark', 'auto_dilution_ratio', 'cartridge_lot_no', 'substrate_lot_no',
-      'measurement_date', 'measuring_time'
-    ]
-    print('result data:', data)
-    logging.info(data)
     self.sendSingle('ACK')
+    dataDict = {
+      # 'message_id': data[0],
+      # 'analyzer_id': data[1],
+      'category': data[2],
+      'sample_no': data[3:7],
+      'sequence_no': data[7:11],
+      'patient_id': data[11:36],
+      'rack_id': data[36:40],
+      'position': data[41],
+      'sample_type': data[42],
+      'control_lot': data[43:51],
+      'manual_dilution': data[51:55],
+      # 'comment': data[],
+      'analyte_no': data[55:57],
+      'count_value': data[57:65],
+      'concentration_value': data[65:75],
+      'judgment': data[75:85],
+      'remark': data[85:101],
+      'auto_dilution_ratio': data[101],
+      'cartridge_lot_no': data[102:106],
+      'substrate_lot_no': data[106:110],
+      'measurement_date': data[110:118],
+      'measuring_time': data[118:]
+    }
+
+    for key, value in dataDict.items():
+      dataDict[key] = self.__trimSpaces(value)
+    logging.info(data)
+    self.sqlite.insertResults(dataDict)
     # wait eot (?)
 
   def receiveStatus(self, data):
