@@ -3,6 +3,18 @@ import os
 
 class SqliteModel:
     def __init__(self):
+        # try:
+        #     conn = sqlite3.connect(os.environ.get('SQLITE_PATH'))
+        #     self.conn = conn
+        #     self.cursorObj = conn.cursor()
+        # except sqlite3.Error:
+        #     print('error!!!')
+        #     print(sqlite3.Error)
+        self.__connectDB()
+        self.dbInit()
+        self.__disconnectDB()
+
+    def __connectDB(self):
         try:
             conn = sqlite3.connect(os.environ.get('SQLITE_PATH'))
             self.conn = conn
@@ -10,8 +22,10 @@ class SqliteModel:
         except sqlite3.Error:
             print('error!!!')
             print(sqlite3.Error)
-        
-        self.dbInit()
+    
+    def __disconnectDB(self):
+        self.conn.commit()
+        self.conn.close()
 
     def dbInit(self):
         self.cursorObj.execute('''
@@ -33,27 +47,27 @@ class SqliteModel:
             CREATE TABLE if not exists results(
                 id INTEGER PRIMARY KEY,
                 category TEXT,
-                sample_no INTEGER,
-                sequence_no INTEGER,
-                patient_id INTEGER,
-                rack_id INTEGER,
-                position INTEGER,
+                sample_no TEXT,
+                sequence_no TEXT,
+                patient_id TEXT,
+                rack_id TEXT,
+                position TEXT,
                 sample_type TEXT,
-                control_lot INTEGER,
-                manual_dilution INTEGER,
+                control_lot TEXT,
+                manual_dilution TEXT,
                 comment TEXT,
-                analyte_no INTEGER,
-                count_value INTEGER,
-                concentration_value INTEGER,
+                analyte_no TEXT,
+                count_value TEXT,
+                concentration_value TEXT,
                 judgment TEXT,
                 remark TEXT,
-                auto_dilution_ratio INTEGER,
-                cartridge_lot_no INTEGER,
-                substrate_lot_no INTEGER,
+                auto_dilution_ratio TEXT,
+                cartridge_lot_no TEXT,
+                substrate_lot_no TEXT,
                 measurement_date TEXT,
                 measuring_time TEXT,
                 uploaded NUMERIC DEFAULT 0,
-                fk_test_id INTEGER,
+                fk_test_id TEXT,
                 create_time DATETIME DEFAULT (datetime(CURRENT_TIMESTAMP, 'localtime')),
                 FOREIGN KEY (fk_test_id) REFERENCES tests(id)
             );
@@ -61,6 +75,7 @@ class SqliteModel:
         self.conn.commit()
 
     def testsFindMany(self, startDate, endDate):
+        self.__connectDB()
         self.cursorObj.execute(f"SELECT * FROM tests WHERE create_time BETWEEN '{startDate}' AND '{endDate}'")
         names = [description[0] for description in self.cursorObj.description]
         data = self.cursorObj.fetchall()
@@ -69,10 +84,11 @@ class SqliteModel:
             newItem = zip(names, item)
             dataList.append(dict((x, y) for x, y in newItem))
 
-        self.conn.commit()
+        self.__disconnectDB()
         return dataList
     
     def resultsFindMany(self, startDate, endDate):
+        self.__connectDB()
         self.cursorObj.execute(f"SELECT * FROM results WHERE create_time BETWEEN '{startDate}' AND '{endDate}'")
         names = [description[0] for description in self.cursorObj.description]
         data = self.cursorObj.fetchall()
@@ -81,10 +97,11 @@ class SqliteModel:
             newItem = zip(names, item)
             dataList.append(dict((x, y) for x, y in newItem))
 
-        self.conn.commit()
+        self.__disconnectDB()
         return dataList
     
     def updateResults(self, id, data):
+        self.__connectDB()
         setStr = ','.join(map(lambda items: '='.join(items), data.items()))
         self.cursorObj.execute(f'''
             UPDATE results
@@ -95,26 +112,35 @@ class SqliteModel:
             UPDATE results
             SET {setStr}              
         ''')
+        self.__disconnectDB()
 
     def insertTests(self, data):
-        columns = ','.join(data.keys())
-        values = ','.join(data.vakyes())
+        self.__connectDB()
+        columns = "','".join(data.keys())
+        values = "','".join(data.values())
         self.cursorObj.execute(f'''
-            INSERT INTO tests ({columns})
-            VALUES ({values});
+            INSERT INTO tests ('{columns}')
+            VALUES ('{values}');
         ''')
+        self.__disconnectDB()
     
     def insertResults(self, data):
-        columns = ','.join(data.keys())
-        values = ','.join(data.vakyes())
-        self.cursorObj.execute(f'''
-            INSERT INTO results ({columns})
-            VALUES ({values});
-        ''')
+        self.__connectDB()
+        columns = "','".join(data.keys())
+        values = "','".join(data.values())
+        sqlStr = f'''
+            INSERT INTO results ('{columns}')
+            VALUES ('{values}');
+        '''
+        print('sql str:', sqlStr)
+        self.cursorObj.execute(sqlStr)
+        self.__disconnectDB()
     
     def listTables(self):
+        self.__connectDB()
         self.cursorObj.execute('SELECT name FROM sqlite_schema WHERE type ="table" AND name NOT LIKE "sqlite_%";')
         tables = self.cursorObj.fetchall()
+        self.__disconnectDB()
         return tables
     
 if __name__ == '__main__':
