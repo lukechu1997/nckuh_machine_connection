@@ -19,14 +19,9 @@ class OptionController:
     self.__setSerialPortName(os.environ.get('SERIAL_PORT'))
 
   def __serialReadyRead(self):
-    buffer = self.serial.read(1024)
-    # print(self.serial.readAll())
-    # buffer = self.serial.read(10)
-    # buffer = buffer.decode("ascii")
-    # print('msg type: ', type(buffer))
-    # buffer = str(buffer)
+    # buffer = self.serial.read(1024)
+    buffer = self.serial.readAll().data()
     print('buffer: ', buffer)
-    # print('decode to utf-8: ', buffer.decode('utf-8'))
     time = QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss  ")
     self._wigets.textBrowser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
     tc = self._wigets.textBrowser.textCursor()
