@@ -1,11 +1,14 @@
 import logging
 from ..model.sqliteModel import SqliteModel
+from ..model.mdbModel import MdbModel
 
 class SerialHelper:
   def __init__(self, serial):
     self.serial = serial
     self.sqlite = SqliteModel()
-    self.tempData = ''
+    self.mdb = MdbModel()
+    self.tempData = b''
+    self.tempRequestData = {}
     self.status = 'IDLE'
 
   def __formatOutput(self, dataStr):
@@ -13,7 +16,7 @@ class SerialHelper:
     processedData = rawDataHex + '03'
     bcc = hex(0)
     for i in range(0, len(processedData), 2):
-        bcc = hex(int(bcc, 16) ^ int(processedData[i:i + 2], 16))
+      bcc = hex(int(bcc, 16) ^ int(processedData[i:i + 2], 16))
 
     return bytearray.fromhex('02' + processedData + bcc[2:].encode('ascii').hex())
 
@@ -21,8 +24,8 @@ class SerialHelper:
     data = rawData.replace(b'\x02', b'').split(b'\x03')[0]
     return data.decode('utf-8')
   
-  def __trimSpaces(self, data):
-    return data.replace(' ', '')
+  # def __trimSpaces(self, data):
+  #   return data.replace(' ', '')
 
   def main(self, rawData):
     # print('main', rawData.decode("UTF-8"))
@@ -31,20 +34,24 @@ class SerialHelper:
       case b'\x04':
         logging.info('[EOT]')
         if self.status == 'REQUEST':
-          self.sendRequestMsg({})
+          self.sendSingle('ENQ')
+          
         return
       case b'\x05':
         self.sendSingle('ACK')
         logging.info('[ENQ]')
         return
       case b'\x06':
-        # self.sendSingle('EOT')
+        if self.status == 'REQUEST':
+          self.sendRequestMsg(self.tempRequestData)
+        else:
+          self.sendSingle('EOT')
+
         logging.info('[ACK]')
       case _:
-        self.tempData = self.tempData + rawData.decode("UTF-8")
-        print(self.tempData)
-        if b'\x03' in rawData:
-          self.readComplicatedData(rawData)
+        self.tempData = self.tempData + rawData
+        if b'\x03' in self.tempData:
+          self.readComplicatedData(self.tempData)
 
   def readComplicatedData(self, rawData):
     data = self.__trimIncomingData(rawData)
@@ -62,7 +69,6 @@ class SerialHelper:
         print('other')
 
   def sendRequestMsg(self, data = {}):
-    self.sendSingle('ENQ')
     # wait for ack
 
     # write assay request
@@ -99,9 +105,14 @@ class SerialHelper:
 
   def receiveQuery(self, data):
     self.sendSingle('ACK')
-    keys = [
-      'message_id', 'analyzer_id', 'patient_id', 'rack_id', 'sample_no', 'sample_category'
-    ]
+    dataDict = {
+      'message_id': data[1],
+      'analyzer_id': data[2],
+      'patient_id': data[3:29],
+      'rack_id': data[29:35],
+      'sample_no': data[35:38],
+      # 'sample_category': data[1]
+    }
     print('query data:', data)
     logging.info(data)
 
@@ -117,8 +128,8 @@ class SerialHelper:
       'category': data[2],
       'sample_no': data[3:7],
       'sequence_no': data[7:11],
-      'patient_id': data[11:36],
-      'rack_id': data[36:40],
+      'patient_id': data[11:37],
+      'rack_id': data[37:41],
       'position': data[41],
       'sample_type': data[42],
       'control_lot': data[43:51],
@@ -137,10 +148,12 @@ class SerialHelper:
     }
 
     for key, value in dataDict.items():
-      dataDict[key] = self.__trimSpaces(value)
+      dataDict[key] = value.replace(' ', '')
     logging.info(data)
     self.sqlite.insertResults(dataDict)
-    # wait eot (?)
+    # reset tempData and status
+    self.tempData = b''
+    self.status = 'IDLE'
 
   def receiveStatus(self, data):
     dataDect = {
