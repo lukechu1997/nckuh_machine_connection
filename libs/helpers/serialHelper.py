@@ -69,22 +69,21 @@ class SerialHelper:
         print('other')
 
   def sendRequestMsg(self, data = {}):
-    # wait for ack
-
     # write assay request
     messageBodyDict = {
-      "messageId": "W",
-      "analyzer_id": data['analyzerId'],
-      "specimen_category": data['specimenCategory'],
-      "sample_no": data['sampleNo'],
-      "patient_id": data['patientId'], 
-      "rack_id": data['rackId'], 
-      "position": data['position'], 
+      "messageId": 'W',
+      "analyzer_id": 1,
+      "specimen_category": 'N',
+      "sample_no": data['sampleNo'].rjust(4, ' '),
+      "patient_id": data['patientId'].ljust(26, ' '), 
+      "rack_id": ' ' * 4, 
+      "position": ' ', 
       "sample_type": data['sampleType'],
-      "control_lot": data['controlLot'],
-      "manual_dilution": data['manualDilution'], 
-      "comment": data['comment'],
-      "analyte_no": data['analyteNo'],
+      "control_lot": ' ' * 8,
+      "manual_dilution": data['manualDilution'].ljust(4, ' '), 
+      # "comment": data['comment'],
+      "num_of_analytes": '',
+      "analyte_no": '11',
       "auto_dilution_ratio": data['autoDilutionRatio']
     }
 
@@ -92,19 +91,18 @@ class SerialHelper:
     encodedStr = self.__formatOutput(messageBodyStr)
     self.serial.write(bytes(encodedStr, 'ascii'))
 
-    # self.serial.write(encodedStr)
-
-    # wait ack
-
-    # send eot
+    # reset status and temp data
+    self.status = 'IDLE'
+    self.tempRequestData = {}
 
   def sendStatusQuery(self): 
-    self.sendSingle('ENQ')
-    # wait for ack
-    self.serial.write(self.__formatOutput('Q1'))
-
+    if self.status == 'STATUS':
+      self.serial.write(self.__formatOutput('Q1'))
+    else:
+      self.status = 'STATUS'
+      self.sendSingle('ENQ')
+    
   def receiveQuery(self, data):
-    self.sendSingle('ACK')
     dataDict = {
       'message_id': data[1],
       'analyzer_id': data[2],
@@ -113,12 +111,17 @@ class SerialHelper:
       'sample_no': data[35:38],
       # 'sample_category': data[1]
     }
-    print('query data:', data)
     logging.info(data)
 
-    # send request
+    barCode = dataDict['patient_id'].replace(' ', '')
+
+    self.tempRequestData = self.mdb.testFindUnique({
+      'specKind': barCode[0:2],
+      'specYear': barCode[2:4],
+      'specNo': barCode[4:]
+    })
+    self.sendSingle('ACK')
     self.status = 'REQUEST'
-    # self.sendRequest
 
   def receiveResult(self, data):
     self.sendSingle('ACK')
@@ -161,9 +164,9 @@ class SerialHelper:
       'analyzer_id': data[1], 
       'status': data[2]
     }
-    logging.info(data)
+    logging.info(dataDect)
     self.sendSingle('ACK')
-    # wait eot (?)
+    self.status = 'IDLE'
 
   def sendSingle(self, type):
     match type:
