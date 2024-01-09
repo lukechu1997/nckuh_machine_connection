@@ -31,6 +31,16 @@ class MdbModel:
       logging.critical(Exception)
       print('Exception: ', Exception)
 
+  def testFindUnique(self, data):
+    queryStr = 'SELECT * FROM TEST WHERE [SPEC_KIND] = "?" AND [SPEC_YEAR] = "?" AND [SPEC_NO] = "?";'
+    self.cursor.execute(queryStr, data['specKind'], data['specYear'], data['specNo'])
+    columns = [column[0] for column in self.cursor.description]
+    data = self.cursor.fetchone()
+    # for row in self.cursor.fetch():
+    #   data.append(dict(zip(columns, row)))
+    
+    return dict(zip(columns, data))
+  
   def testFindMany(
     self, 
     startDate = (datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y-%m-%d'),
