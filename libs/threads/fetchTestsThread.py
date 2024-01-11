@@ -1,11 +1,20 @@
 import datetime
-from ..model.mdbModel import MdbModel
+import time
+# from ..model.mdbModel import MdbModel
+from ..model.sqliteModel import SqliteModel
 
 class FetchTestsThread:
-  def __init__(self):
-    self.mdb = MdbModel()
-  
   def main(self):
-    while True:
-      startTime = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%s')
-      self.mdb.testFindMany()
+    # self.mdb = MdbModel()
+    try:
+      self.sqlite = SqliteModel()
+      while True:
+        endTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        startTime = (datetime.datetime.fromisoformat(endTime) - datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
+        # self.mdb.testFindMany(startTime, endTime)
+        testsData = self.sqlite.testsFindMany(startTime, endTime)
+        print('testsData:', testsData)
+        print({"startTime": startTime, "endTime": endTime})
+        time.sleep(60)
+    except Exception:
+      print(Exception)

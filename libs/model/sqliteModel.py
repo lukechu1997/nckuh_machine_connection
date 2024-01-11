@@ -72,11 +72,13 @@ class SqliteModel:
       );''')
     self.conn.commit()
 
-  def testsFindMany(self, startDate, endDate):
+  def testsFindMany(self, startTime, endTime):
     self.__connectDB()
-    self.cursorObj.execute(f"SELECT * FROM tests WHERE create_time BETWEEN '{startDate}' AND '{endDate}'")
+    print(f"SELECT * FROM tests WHERE create_time BETWEEN '{startTime}' AND '{endTime}'")
+    self.cursorObj.execute(f"SELECT * FROM tests WHERE create_time BETWEEN '{startTime}' AND '{endTime}'")
     names = [description[0] for description in self.cursorObj.description]
     data = self.cursorObj.fetchall()
+    print('tests data:', data)
     dataList = []
     for item in data:
       newItem = zip(names, item)
@@ -85,9 +87,9 @@ class SqliteModel:
     self.__disconnectDB()
     return dataList
   
-  def resultsFindMany(self, startDate, endDate):
+  def resultsFindMany(self, startTime, endTime):
     self.__connectDB()
-    self.cursorObj.execute(f"SELECT * FROM results WHERE create_time BETWEEN '{startDate}' AND '{endDate}'")
+    self.cursorObj.execute(f"SELECT * FROM results WHERE create_time BETWEEN '{startTime}' AND '{endTime}'")
     names = [description[0] for description in self.cursorObj.description]
     data = self.cursorObj.fetchall()
     dataList = []
@@ -117,8 +119,8 @@ class SqliteModel:
     columns = "','".join(data.keys())
     values = "','".join(data.values())
     self.cursorObj.execute(f'''
-        INSERT INTO tests ('{columns}')
-        VALUES ('{values}');
+      INSERT INTO tests ('{columns}')
+      VALUES ('{values}');
     ''')
     self.__disconnectDB()
   
@@ -128,8 +130,8 @@ class SqliteModel:
     columns = "','".join(data.keys())
     values = "','".join(data.values())
     sqlStr = f'''
-        INSERT INTO results ('{columns}')
-        VALUES ('{values}');
+      INSERT INTO results ('{columns}')
+      VALUES ('{values}');
     '''
     print('sql str:', sqlStr)
     self.cursorObj.execute(sqlStr)

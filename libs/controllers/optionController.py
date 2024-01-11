@@ -49,18 +49,14 @@ class OptionController:
   def __sendENQ(self):
     print('send enq')
     self.serialHelper.sendSingle('ENQ')
-    # self.serial.write(b'\x05')
 
   def __sendACK(self):
     print('send ack')
     self.serialHelper.sendSingle('ACK')
 
-    # self.serial.write(b'\x06')
-
   def __sendEOT(self):
     print('send eot')
     self.serialHelper.sendSingle('EOT')
-    # self.serial.write(b'\x04')
 
   def __queryStatus(self):
     self.serialHelper.sendStatusQuery()

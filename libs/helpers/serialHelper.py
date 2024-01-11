@@ -23,12 +23,8 @@ class SerialHelper:
   def __trimIncomingData(self, rawData):
     data = rawData.replace(b'\x02', b'').split(b'\x03')[0]
     return data.decode('utf-8')
-  
-  # def __trimSpaces(self, data):
-  #   return data.replace(' ', '')
 
   def main(self, rawData):
-    # print('main', rawData.decode("UTF-8"))
     # estabilish connection
     match rawData:
       case b'\x04':

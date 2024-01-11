@@ -43,11 +43,11 @@ class MdbModel:
   
   def testFindMany(
     self, 
-    startDate = (datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y-%m-%d'),
-    endDate = datetime.date.today()
+    startTime = (datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y-%m-%d'),
+    endTime = datetime.date.today()
   ):
     queryStr = 'SELECT * FROM Test WHERE [TX_TIME] BETWEEN ? AND ?;'
-    self.cursor.execute(queryStr, startDate, endDate)
+    self.cursor.execute(queryStr, startTime, endTime)
     columns = [column[0] for column in self.cursor.description]
     data = []
     for row in self.cursor.fetchall():
