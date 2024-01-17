@@ -1,9 +1,11 @@
 import logging
 from ..model.sqliteModel import SqliteModel
 from ..model.mdbModel import MdbModel
+from datetime import datetime
 
 class SerialHelper:
   def __init__(self, serial):
+    print('serial helper init')
     self.serial = serial
     self.sqlite = SqliteModel()
     self.mdb = MdbModel()
@@ -40,6 +42,8 @@ class SerialHelper:
       case b'\x06':
         if self.status == 'REQUEST':
           self.sendRequestMsg(self.tempRequestData)
+        elif self.status == 'STATUS':
+          self.sendStatusQuery()
         else:
           self.sendSingle('EOT')
 
@@ -94,6 +98,7 @@ class SerialHelper:
   def sendStatusQuery(self): 
     if self.status == 'STATUS':
       self.serial.write(self.__formatOutput('Q1'))
+      self.status = 'IDLE'
     else:
       self.status = 'STATUS'
       self.sendSingle('ENQ')
@@ -116,6 +121,12 @@ class SerialHelper:
       'specYear': barCode[2:4],
       'specNo': barCode[4:]
     })
+    self.mdb.testUpdate(self.tempRequestData['SUID'], 
+                        {
+                          'DOWNLOAD_TIME': datetime.now().strftime('%Y/%m/%d %H:%M:%S'),
+                          'STATE': 'P'
+                        })
+
     self.sendSingle('ACK')
     self.status = 'REQUEST'
 
@@ -150,6 +161,45 @@ class SerialHelper:
       dataDict[key] = value.replace(' ', '')
     logging.info(data)
     self.sqlite.insertResults(dataDict)
+    testData = self.mdb.testFindUnique({
+      'specKind': dataDict['patient_id'][0:2],
+      'specYear': dataDict['patient_id'][2:4],
+      'specNo': dataDict['patient_id'][4:8]
+    })
+    self.mdb.resultInsert({
+      'SECT_NO': testData['SECT_NO'] if 'SECT_NO' in testData else '',
+      'SPEC_KIND': dataDict['patient_id'][0:2],
+      'SPEC_YEAR': dataDict['patient_id'][2:4],
+      'SPEC_NO': dataDict['patient_id'][4:8],
+      'SAMPLE_TYPE': testData['SAMPLE_TYPE'] if 'SAMPLE_TYPE' in testData else '',
+      'RERUN_COUNT': testData['RERUN_COUNT'] if 'RERUN_COUNT' in testData else '',
+      'TX_TIME': testData['TX_TIME'] if 'TX_TIME' in testData else '',
+      'REQUEST_NO': testData['REQUEST_NO'] if 'REQUEST_NO' in testData else '',
+      'CHART_NO': testData['CHART_NO'] if 'CHART_NO' in testData else '',
+      'NAME': testData['NAME'] if 'NAME' in testData else '',
+      'SNO': testData['SNO'] if 'SNO' in testData else '',
+      'BOTTLE_ID': '',
+      'TEST_NAME': '8210PIVKA-Ⅱ',
+      'TEST_VALUE': dataDict['count_value'],
+      'TRANS_VALUE': testData['TRANS_VALUE'] if 'TRANS_VALUE' in testData else '',
+      # 'MIC_VALUE': '',
+      'DILUTION': 1, 
+      'DILUTION_VALUE': '1',
+      'RACK_NO': dataDict['rack_id'],
+      'TUBE_NO': dataDict['position'],
+      # 'MACHINE_SNO': dataDict[],
+      # 'MACHINE_ID': dataDict[],
+      'ERROR_CODE': '',
+      'ERROR_MSG': '',
+      'TEST_CODE': 'PIVKA-Ⅱ',
+      # 'TEST_CODE_NAME': dataDict[],
+      'STATE': 'P',
+      'UPLOAD_TIME': datetime.now().strftime('%Y/%m/%d %H:%M:%S'),
+      'StartedTime': datetime.now().strftime('%Y/%m/%d %H:%M:%S'),
+      'CompletedTime': datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+    })
+    if not testData['DOWNLOAD_TIME']:
+      self.mdb.testUpdate(testData['SUID'], {'DOWNLOAD_TIME': datetime.now().strftime('%Y/%m/%d %H:%M:%S')})
     # reset tempData and status
     self.tempData = b''
     self.status = 'IDLE'

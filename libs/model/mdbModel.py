@@ -3,6 +3,7 @@ import dotenv
 import logging
 import pyodbc
 import os
+import sqlalchemy
 
 class MdbModel:
   def __init__(self):
@@ -10,12 +11,20 @@ class MdbModel:
       accessPath = os.environ.get('ACCESS_PATH')
       connStr = (
         r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
-        f"DBQ={accessPath};"
+        f"DBQ={accessPath if accessPath else '.\Automation.mdb'};"
+        r"ExtendedAnsiSQL=1;"
       )
-      self.conn = pyodbc.connect(connStr)
-      self.cursor = self.conn.cursor()
-    except Exception:
-      print('Exception', Exception)
+
+      connectionUrl = sqlalchemy.engine.URL.create(
+        "access+pyodbc",
+        query={"odbc_connect": connStr}
+      )
+      self.engine = sqlalchemy.create_engine(connectionUrl)
+      # self.conn = pyodbc.connect(connStr)
+      # self.cursor = self.conn.cursor()
+    except Exception as e:
+      logging.critical(f'[Mdb Exception] {e}')
+      print('Mdb Exception', e)
 
   def updateAccessPath(self, accessPath):
     try:
@@ -32,15 +41,16 @@ class MdbModel:
       print('Exception: ', Exception)
 
   def testFindUnique(self, data):
-    queryStr = 'SELECT * FROM TEST WHERE [SPEC_KIND] = "?" AND [SPEC_YEAR] = "?" AND [SPEC_NO] = "?";'
-    self.cursor.execute(queryStr, data['specKind'], data['specYear'], data['specNo'])
+    queryStr = f"SELECT * FROM TEST WHERE [SPEC_KIND] = '{data['specKind']}' AND [SPEC_YEAR] = '{data['specYear']}' AND [SPEC_NO] = '{data['specNo']}';"
+    self.cursor.execute(queryStr)
     columns = [column[0] for column in self.cursor.description]
     data = self.cursor.fetchone()
-    # for row in self.cursor.fetch():
-    #   data.append(dict(zip(columns, row)))
+    resData = {}
+    if data:
+      resData = dict(zip(columns, data))
+
+    return resData
     
-    return dict(zip(columns, data))
-  
   def testFindMany(
     self, 
     startTime = (datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y-%m-%d'),
@@ -55,23 +65,24 @@ class MdbModel:
     
     return data
   
-  def testUpdate(self, id):
-    queryStr = 'UPDATE Test SET DOWNLOAD_TIME = ? WHERE SUID = ?'
+  def testUpdate(self, id, data):
+    queryStr = f'UPDATE Test SET ? WHERE SUID = ?'
     self.cursor.execute(
       queryStr, 
-      datetime.datetime.now(),
+      ','.join(map(lambda items: '='.join(items), data.items())),
       id
     )
     self.cursor.commit()
 
   def resultInsert(self, dataDict = {}):
-    queryStr = 'INSERT INTO Result (?) VALUES (?)'
-    self.cursor.execute(
-      queryStr,
-      ', '.join(dataDict.keys()),
-      ', '.join(dataDict.values())
-    )
-    self.cursor.commit()
+    self.engine.begine().execute(sqlalchemy.insert('Result'), dataDict)
+    
+    # queryStr = f"INSERT INTO Result ({','.join(dataDict.keys())}) VALUES ('{"','".join(dataDict.values())}')"
+    # print(queryStr)
+    # self.cursor.execute(
+    #   queryStr
+    # )
+    # self.cursor.commit()
   
   def resultUpdate(self, dataDict):
     queryStr = 'INSERT INTO Result (?) VALUES (?)'
@@ -90,3 +101,4 @@ class MdbModel:
 if __name__ == '__main__':
   print('mdb connection')
   mdbModel = MdbModel()
+  mdbModel.test()

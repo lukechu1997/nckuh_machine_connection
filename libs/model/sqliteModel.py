@@ -125,7 +125,6 @@ class SqliteModel:
     self.__disconnectDB()
   
   def insertResults(self, data):
-    print(data)
     self.__connectDB()
     columns = "','".join(data.keys())
     values = "','".join(data.values())
@@ -133,7 +132,6 @@ class SqliteModel:
       INSERT INTO results ('{columns}')
       VALUES ('{values}');
     '''
-    print('sql str:', sqlStr)
     self.cursorObj.execute(sqlStr)
     self.__disconnectDB()
   

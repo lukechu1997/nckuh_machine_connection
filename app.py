@@ -1,15 +1,17 @@
 from datetime import date
 from PyQt6.QtCore import QThread
-from PyQt6.QtWidgets import QMainWindow, QApplication, QDialog
-# from libs.controllers.optionController import optionController
+from PyQt6.QtWidgets import QMainWindow, QApplication
 from libs.controllers.mainController import MainController
 from libs.view.ui import Ui_dialog as mainDialog
-from libs.view.option import Ui_Dialog as optionDialog
 import logging, os, sys
 import dotenv
 from libs.threads.fetchTestsThread import FetchTestsThread
 
-dotenv.load_dotenv('.env')
+extDataDir = os.getcwd()
+if getattr(sys, 'frozen', False):
+    extDataDir = sys._MEIPASS
+dotenv.load_dotenv(dotenv_path=os.path.join(extDataDir, '.env'))
+dotenv.set_key(dotenv_path=os.path.join(extDataDir, '.env'), key_to_set='EXT_DATA_DIR', value_to_set=extDataDir)
 basicPath = os.environ.get('BASIC_PATH')
 
 def initializeFolder() :
@@ -39,10 +41,15 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == '__main__':
-  initializeFolder()
-  FORMAT = '%(asctime)s %(levelname)s: %(message)s'
-  logging.basicConfig(level=logging.DEBUG, filename=f'{basicPath}\\logs\\{date.today()}.log', filemode='a', format=FORMAT)
-  app = QApplication([])
-  window = MainWindow()
-  window.show()
-  sys.exit(app.exec())
+  try:
+    initializeFolder()
+    FORMAT = '%(asctime)s %(levelname)s: %(message)s'
+    logging.basicConfig(level=logging.DEBUG, filename=f'{basicPath}\\logs\\{date.today()}.log', filemode='a', format=FORMAT)
+    app = QApplication([])
+    window = MainWindow()
+    window.show()    
+    sys.exit(app.exec())
+
+  except Exception as e:
+    logging.critical(e)
+    logging.critical(sys.exc_info())

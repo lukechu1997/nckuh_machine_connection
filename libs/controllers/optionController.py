@@ -27,8 +27,7 @@ class OptionController:
     tc = self._wigets.textBrowser.textCursor()
     tc.movePosition(QtGui.QTextCursor.MoveOperation.End)
     tc.insertText(time + buffer.decode('utf-8'))
-    serialHelper = SerialHelper(self.serial)
-    serialHelper.main(buffer)
+    self.serialHelper.main(buffer)
 
   def __setSerialPortName(self, port): 
     if(self.serial.isOpen()):

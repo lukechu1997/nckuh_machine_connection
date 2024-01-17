@@ -1,20 +1,34 @@
 import datetime
 import time
-# from ..model.mdbModel import MdbModel
+from ..model.mdbModel import MdbModel
 from ..model.sqliteModel import SqliteModel
 
 class FetchTestsThread:
   def main(self):
-    # self.mdb = MdbModel()
     try:
+      self.mdb = MdbModel()
       self.sqlite = SqliteModel()
       while True:
         endTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        startTime = (datetime.datetime.fromisoformat(endTime) - datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
-        # self.mdb.testFindMany(startTime, endTime)
-        testsData = self.sqlite.testsFindMany(startTime, endTime)
+        startTime = (datetime.datetime.fromisoformat(endTime) - datetime.timedelta(minutes=10)).strftime('%Y-%m-%d %H:%M:%S')
+        rawTestsData = self.mdb.testFindMany(startTime, endTime)
+        testsData = []
+        for data in rawTestsData :
+          self.sqlite.insertTests({
+            'sect_no': data['SECT_NO'],
+            'spec_kind': data['SPEC_KIND'],
+            'spec_year': data['SPEC_YEAR'],
+            'spec_no': data['SPEC_NO'],
+            'sample_type': data['SAMPLE_TYPE'],
+            'request_no': data['REQUEST_NO'],
+            'chart_no': data['CHART_NO'],
+            'name': data['NAME'],
+            'sno': data['SNO'],
+            'bottle_id': data['BOTTLE_ID'],
+          })
+        # testsData = self.sqlite.testsFindMany(startTime, endTime)
         print('testsData:', testsData)
         print({"startTime": startTime, "endTime": endTime})
-        time.sleep(60)
+        time.sleep(600)
     except Exception:
       print(Exception)
