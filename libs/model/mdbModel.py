@@ -3,7 +3,8 @@ import dotenv
 import logging
 import pyodbc
 import os
-import sqlalchemy
+from sqlalchemy import engine, create_engine, MetaData
+from sqlalchemy import select, func, Table, table
 
 class MdbModel:
   def __init__(self):
@@ -11,45 +12,50 @@ class MdbModel:
       accessPath = os.environ.get('ACCESS_PATH')
       connStr = (
         r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
-        f"DBQ={accessPath if accessPath else '.\Automation.mdb'};"
+        f"DBQ={accessPath if accessPath else 'Automation.mdb'};"
         r"ExtendedAnsiSQL=1;"
       )
 
-      connectionUrl = sqlalchemy.engine.URL.create(
+      connectionUrl = engine.URL.create(
         "access+pyodbc",
         query={"odbc_connect": connStr}
       )
-      self.engine = sqlalchemy.create_engine(connectionUrl)
+      self.engine = create_engine(connectionUrl)
+      self.metadata = MetaData().reflect(bind=self.engine)
       # self.conn = pyodbc.connect(connStr)
       # self.cursor = self.conn.cursor()
     except Exception as e:
       logging.critical(f'[Mdb Exception] {e}')
       print('Mdb Exception', e)
 
-  def updateAccessPath(self, accessPath):
-    try:
-      self.conn.close()
-      connStr = (
-        r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
-        f"DBQ={accessPath};"
-      )
-      self.conn = pyodbc.connect(connStr)
-      self.cursor = self.conn.cursor()
-      dotenv.set_key('.env', 'ACCESS_PATH', accessPath)
-    except Exception:
-      logging.critical(Exception)
-      print('Exception: ', Exception)
+  # def updateAccessPath(self, accessPath):
+  #   try:
+  #     self.conn.close()
+  #     connStr = (
+  #       r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
+  #       f"DBQ={accessPath};"
+  #     )
+  #     self.conn = pyodbc.connect(connStr)
+  #     self.cursor = self.conn.cursor()
+  #     dotenv.set_key('.env', 'ACCESS_PATH', accessPath)
+  #   except Exception:
+  #     logging.critical(Exception)
+  #     print('Exception: ', Exception)
 
   def testFindUnique(self, data):
-    queryStr = f"SELECT * FROM TEST WHERE [SPEC_KIND] = '{data['specKind']}' AND [SPEC_YEAR] = '{data['specYear']}' AND [SPEC_NO] = '{data['specNo']}';"
-    self.cursor.execute(queryStr)
-    columns = [column[0] for column in self.cursor.description]
-    data = self.cursor.fetchone()
-    resData = {}
-    if data:
-      resData = dict(zip(columns, data))
+    testTable = Table("Test", self.metadata)
+    with self.engine.connect() as conn:
+      data = select()
 
-    return resData
+    # queryStr = f"SELECT * FROM TEST WHERE [SPEC_KIND] = '{data['specKind']}' AND [SPEC_YEAR] = '{data['specYear']}' AND [SPEC_NO] = '{data['specNo']}';"
+    # self.cursor.execute(queryStr)
+    # columns = [column[0] for column in self.cursor.description]
+    # data = self.cursor.fetchone()
+    # resData = {}
+      if data:
+        resData = dict(zip(columns, data))
+
+      return resData
     
   def testFindMany(
     self, 
@@ -75,7 +81,11 @@ class MdbModel:
     self.cursor.commit()
 
   def resultInsert(self, dataDict = {}):
-    self.engine.begine().execute(sqlalchemy.insert('Result'), dataDict)
+    resultTable = Table("Result", self.metadata)
+    with self.engine.connect() as conn:
+      conn.execute(resultTable.insert(), dataDict)
+
+    # self.engine.begine().execute(sqlalchemy.insert('Result'), dataDict)
     
     # queryStr = f"INSERT INTO Result ({','.join(dataDict.keys())}) VALUES ('{"','".join(dataDict.values())}')"
     # print(queryStr)
@@ -101,4 +111,4 @@ class MdbModel:
 if __name__ == '__main__':
   print('mdb connection')
   mdbModel = MdbModel()
-  mdbModel.test()
+  
