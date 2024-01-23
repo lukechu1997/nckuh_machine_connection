@@ -65,8 +65,6 @@ class SerialHelper:
       case 'S':
         self.status = 'STATUS'
         self.receiveStatus(data)
-      case _:
-        print('other')
 
   def sendRequestMsg(self, data = {}):
     # write assay request
@@ -164,16 +162,16 @@ class SerialHelper:
     testData = self.mdb.testFindUnique({
       'specKind': dataDict['patient_id'][0:2],
       'specYear': dataDict['patient_id'][2:4],
-      'specNo': dataDict['patient_id'][4:8]
+      'specNo': dataDict['patient_id'][4:10]
     })
     self.mdb.resultInsert({
       'SECT_NO': testData['SECT_NO'] if 'SECT_NO' in testData else '',
       'SPEC_KIND': dataDict['patient_id'][0:2],
       'SPEC_YEAR': dataDict['patient_id'][2:4],
-      'SPEC_NO': dataDict['patient_id'][4:8],
+      'SPEC_NO': dataDict['patient_id'][4:10],
       'SAMPLE_TYPE': testData['SAMPLE_TYPE'] if 'SAMPLE_TYPE' in testData else '',
-      'RERUN_COUNT': testData['RERUN_COUNT'] if 'RERUN_COUNT' in testData else '',
-      'TX_TIME': testData['TX_TIME'] if 'TX_TIME' in testData else '',
+      'RERUN_COUNT': testData['RERUN_COUNT'] if 'RERUN_COUNT' in testData else 0,
+      'TX_TIME': testData['TX_TIME'] if 'TX_TIME' in testData else datetime.now(),
       'REQUEST_NO': testData['REQUEST_NO'] if 'REQUEST_NO' in testData else '',
       'CHART_NO': testData['CHART_NO'] if 'CHART_NO' in testData else '',
       'NAME': testData['NAME'] if 'NAME' in testData else '',
@@ -194,12 +192,12 @@ class SerialHelper:
       'TEST_CODE': 'PIVKA-Ⅱ',
       # 'TEST_CODE_NAME': dataDict[],
       'STATE': 'P',
-      'UPLOAD_TIME': datetime.now().strftime('%Y/%m/%d %H:%M:%S'),
-      'StartedTime': datetime.now().strftime('%Y/%m/%d %H:%M:%S'),
-      'CompletedTime': datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+      'UPLOAD_TIME': datetime.now(),
+      'StartedTime': datetime.now(),
+      'CompletedTime': datetime.now()
     })
-    if not testData['DOWNLOAD_TIME']:
-      self.mdb.testUpdate(testData['SUID'], {'DOWNLOAD_TIME': datetime.now().strftime('%Y/%m/%d %H:%M:%S')})
+    if len(testData.keys()) != 0 and not testData['DOWNLOAD_TIME']:
+      self.mdb.testUpdate(testData['SUID'], {'STATE': 'P','DOWNLOAD_TIME': datetime.now().strftime('%Y/%m/%d %H:%M:%S')})
     # reset tempData and status
     self.tempData = b''
     self.status = 'IDLE'
