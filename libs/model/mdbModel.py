@@ -1,10 +1,8 @@
 import datetime
-import dotenv
 import logging
-import pyodbc
 import os
 from sqlalchemy import engine, create_engine, MetaData
-from sqlalchemy import select, func, Table, table
+from sqlalchemy import select, Table, update
 
 class MdbModel:
   def __init__(self):
@@ -15,93 +13,66 @@ class MdbModel:
         f"DBQ={accessPath if accessPath else 'Automation.mdb'};"
         r"ExtendedAnsiSQL=1;"
       )
-
       connectionUrl = engine.URL.create(
         "access+pyodbc",
         query={"odbc_connect": connStr}
       )
       self.engine = create_engine(connectionUrl)
-      self.metadata = MetaData().reflect(bind=self.engine)
-      # self.conn = pyodbc.connect(connStr)
-      # self.cursor = self.conn.cursor()
+      self.metadata = MetaData()
+      self.metadata.reflect(self.engine)
     except Exception as e:
       logging.critical(f'[Mdb Exception] {e}')
       print('Mdb Exception', e)
 
-  # def updateAccessPath(self, accessPath):
-  #   try:
-  #     self.conn.close()
-  #     connStr = (
-  #       r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
-  #       f"DBQ={accessPath};"
-  #     )
-  #     self.conn = pyodbc.connect(connStr)
-  #     self.cursor = self.conn.cursor()
-  #     dotenv.set_key('.env', 'ACCESS_PATH', accessPath)
-  #   except Exception:
-  #     logging.critical(Exception)
-  #     print('Exception: ', Exception)
-
   def testFindUnique(self, data):
     testTable = Table("Test", self.metadata)
     with self.engine.connect() as conn:
-      data = select()
-
-    # queryStr = f"SELECT * FROM TEST WHERE [SPEC_KIND] = '{data['specKind']}' AND [SPEC_YEAR] = '{data['specYear']}' AND [SPEC_NO] = '{data['specNo']}';"
-    # self.cursor.execute(queryStr)
-    # columns = [column[0] for column in self.cursor.description]
-    # data = self.cursor.fetchone()
-    # resData = {}
-      if data:
-        resData = dict(zip(columns, data))
-
-      return resData
+      data = conn.execute(select(testTable)
+              .where(testTable.columns.SPEC_KIND == data['specKind'])
+              .where(testTable.columns.SPEC_YEAR == data['specYear'])
+              .where(testTable.columns.SPEC_NO == data['specNo'])
+              ).mappings().first()
+      return data
     
   def testFindMany(
     self, 
     startTime = (datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y-%m-%d'),
     endTime = datetime.date.today()
   ):
-    queryStr = 'SELECT * FROM Test WHERE [TX_TIME] BETWEEN ? AND ?;'
-    self.cursor.execute(queryStr, startTime, endTime)
-    columns = [column[0] for column in self.cursor.description]
-    data = []
-    for row in self.cursor.fetchall():
-      data.append(dict(zip(columns, row)))
-    
-    return data
+    testTable = Table("Test", self.metadata)
+    with self.engine.connect() as conn:
+      data = conn.execute(select(testTable).where(testTable.columns.TX_TIME.between(startTime, endTime)))
+      return data.mappings().all()
   
   def testUpdate(self, id, data):
-    queryStr = f'UPDATE Test SET ? WHERE SUID = ?'
-    self.cursor.execute(
-      queryStr, 
-      ','.join(map(lambda items: '='.join(items), data.items())),
-      id
-    )
-    self.cursor.commit()
+    testTable = Table("Test", self.metadata)
+    updateValues = {}
+    for key, val in data.items():
+      updateValues[testTable.columns[key]] = val
+
+    with self.engine.connect() as conn:
+      conn.execute(update(testTable)
+            .where(testTable.columns.SUID == id)
+            .values(updateValues))
+      conn.commit()
 
   def resultInsert(self, dataDict = {}):
     resultTable = Table("Result", self.metadata)
     with self.engine.connect() as conn:
       conn.execute(resultTable.insert(), dataDict)
-
-    # self.engine.begine().execute(sqlalchemy.insert('Result'), dataDict)
-    
-    # queryStr = f"INSERT INTO Result ({','.join(dataDict.keys())}) VALUES ('{"','".join(dataDict.values())}')"
-    # print(queryStr)
-    # self.cursor.execute(
-    #   queryStr
-    # )
-    # self.cursor.commit()
+      conn.commit()
   
-  def resultUpdate(self, dataDict):
-    queryStr = 'INSERT INTO Result (?) VALUES (?)'
-    self.cursor.execute(
-      queryStr,
-      ', '.join(dataDict.keys()),
-      ', '.join(dataDict.values())
-    )
-    self.cursor.commit()
+  def resultUpdate(self, data):
+    testTable = Table("Result", self.metadata)
+    updateValues = {}
+    for key, val in data.items():
+      updateValues[testTable.columns[key]] = val
+
+    with self.engine.connect() as conn:
+      conn.execute(update(testTable)
+            .where(testTable.columns.SUID == id)
+            .values(updateValues))
+      conn.commit()
       
   def test(self):
     cursor = self.conn.cursor()
