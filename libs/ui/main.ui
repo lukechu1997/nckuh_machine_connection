@@ -22,11 +22,17 @@
      <height>201</height>
     </rect>
    </property>
+   <property name="editTriggers">
+    <set>QAbstractItemView::NoEditTriggers</set>
+   </property>
+   <property name="selectionBehavior">
+    <enum>QAbstractItemView::SelectRows</enum>
+   </property>
    <property name="rowCount">
     <number>0</number>
    </property>
    <property name="columnCount">
-    <number>2</number>
+    <number>5</number>
    </property>
    <column>
     <property name="text">
@@ -35,7 +41,22 @@
    </column>
    <column>
     <property name="text">
-     <string>檢驗時間</string>
+     <string>簽收日期</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>檢驗單號</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>病歷號</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>病床號</string>
     </property>
    </column>
   </widget>
@@ -129,11 +150,12 @@
      <height>181</height>
     </rect>
    </property>
-   <column>
-    <property name="text">
-     <string/>
-    </property>
-   </column>
+   <property name="editTriggers">
+    <set>QAbstractItemView::NoEditTriggers</set>
+   </property>
+   <property name="selectionBehavior">
+    <enum>QAbstractItemView::SelectRows</enum>
+   </property>
    <column>
     <property name="text">
      <string>編號</string>
@@ -147,11 +169,6 @@
    <column>
     <property name="text">
      <string>檢驗時間</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>已確認</string>
     </property>
    </column>
   </widget>

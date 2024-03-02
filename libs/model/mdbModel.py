@@ -2,7 +2,9 @@ import datetime
 import logging
 import os
 from sqlalchemy import engine, create_engine, MetaData
-from sqlalchemy import select, Table, update
+from sqlalchemy import select, Table, update, desc
+import sqlalchemy_access as sa_a
+import sqlalchemy_access.pyodbc as sa_a_pyodbc
 
 class MdbModel:
   def __init__(self):
@@ -28,11 +30,12 @@ class MdbModel:
     testTable = Table("Test", self.metadata)
     with self.engine.connect() as conn:
       data = conn.execute(select(testTable)
-              .where(testTable.columns.SPEC_KIND == data['specKind'])
-              .where(testTable.columns.SPEC_YEAR == data['specYear'])
+              # .where(testTable.columns.SPEC_KIND == data['specKind'])
+              # .where(testTable.columns.SPEC_YEAR == data['specYear'])
               .where(testTable.columns.SPEC_NO == data['specNo'])
+              .order_by(desc(testTable.columns.SUID))
               ).mappings().first()
-      return data
+      return data if data else {}
     
   def testFindMany(
     self, 
@@ -56,8 +59,20 @@ class MdbModel:
             .values(updateValues))
       conn.commit()
 
+  def resultFindMany(
+    self, 
+    startTime = (datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y-%m-%d'),
+    endTime = datetime.date.today()
+  ):
+    resultTable = Table("Result", self.metadata)
+    with self.engine.connect() as conn:
+      data = conn.execute(select(resultTable).where(resultTable.columns['TX_TIME'].between(startTime, endTime)))
+      return data.mappings().all()
+
   def resultInsert(self, dataDict = {}):
     resultTable = Table("Result", self.metadata)
+    logging.info('insert result')
+    logging.info(dataDict)
     with self.engine.connect() as conn:
       conn.execute(resultTable.insert(), dataDict)
       conn.commit()

@@ -62,7 +62,7 @@
   <widget class="QPushButton" name="enqBtn">
    <property name="geometry">
     <rect>
-     <x>50</x>
+     <x>160</x>
      <y>420</y>
      <width>101</width>
      <height>41</height>
@@ -75,7 +75,7 @@
   <widget class="QPushButton" name="ackBtn">
    <property name="geometry">
     <rect>
-     <x>170</x>
+     <x>280</x>
      <y>420</y>
      <width>101</width>
      <height>41</height>
@@ -88,7 +88,7 @@
   <widget class="QPushButton" name="eotBtn">
    <property name="geometry">
     <rect>
-     <x>290</x>
+     <x>400</x>
      <y>420</y>
      <width>101</width>
      <height>41</height>
@@ -101,7 +101,7 @@
   <widget class="QPushButton" name="statusBtn">
    <property name="geometry">
     <rect>
-     <x>410</x>
+     <x>50</x>
      <y>420</y>
      <width>101</width>
      <height>41</height>

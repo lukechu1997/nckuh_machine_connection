@@ -5,8 +5,6 @@ from ..model import mdbModel, sqliteModel
 from ..view.option import Ui_Dialog as optionDialog
 from datetime import date, timedelta
 from PyQt6.QtWidgets import  QTableWidgetItem, QDialog
-from PyQt6 import QtSerialPort, QtGui
-from PyQt6.QtCore import QIODeviceBase, QDateTime, Qt
 
 class MainController:
   def __init__(self, wigets):
@@ -18,12 +16,12 @@ class MainController:
   def __searchResults(self):
     startDate = self.wigets.testsStartDate.date().toString('yyyy-MM-dd')
     endDate = self.wigets.testsEndDate.date().toString('yyyy-MM-dd')
-    resultData = self.sqliteModel.resultsFindMany(startDate, endDate)
-    print('result data:', resultData)
+    resultData = self.mdbModel.resultFindMany(startDate, endDate)
     self.wigets.resultsTable.setRowCount(len(resultData))
     for index, data in enumerate(resultData):
-      self.wigets.resultsTable.setItem(index, 0, QTableWidgetItem(str(data['id'])))
-      self.wigets.resultsTable.setItem(index, 1, QTableWidgetItem(data['data']))
+      self.wigets.resultsTable.setItem(index, 0, QTableWidgetItem(data['SECT_NO'] + data['SPEC_KIND'] + data['SPEC_NO']))	
+      self.wigets.resultsTable.setItem(index, 1, QTableWidgetItem(data['TEST_VALUE']))
+      self.wigets.resultsTable.setItem(index, 2, QTableWidgetItem(data['CompletedTime'].strftime('%Y/%m/%d %H:%M:%S')))
 
   def __searchTests(self):
     startDate = self.wigets.testsStartDate.date().toString('yyyy-MM-dd')
@@ -31,8 +29,12 @@ class MainController:
     testData = self.mdbModel.testFindMany(startDate, endDate)
     self.wigets.testsTable.setRowCount(len(testData))
     for index, data in enumerate(testData):
-      self.wigets.testsTable.setItem(index, 0, QTableWidgetItem(str(data['SUID'])))
+      print(data)
+      self.wigets.testsTable.setItem(index, 0, QTableWidgetItem(data['SECT_NO'] + data['SPEC_KIND'] + data['SPEC_NO']))
       self.wigets.testsTable.setItem(index, 1, QTableWidgetItem(data['TX_TIME'].strftime('%Y/%m/%d %H:%M:%S')))
+      self.wigets.testsTable.setItem(index, 2, QTableWidgetItem(data['REQUEST_NO']))
+      self.wigets.testsTable.setItem(index, 3, QTableWidgetItem(data['CHART_NO']))
+      self.wigets.testsTable.setItem(index, 4, QTableWidgetItem(data['BEDNO']))
 
   def __queryDateTimeInit(self):
     startDate = date.today()
@@ -41,6 +43,8 @@ class MainController:
     self.wigets.testsEndDate.setDate(endDate)
 
   def onClickConfirmBtn(self):
+    for item in self.wigets.resultsTable.selectedItems():
+      print(item.text())
     print('clicked')
 
   def onClickSearchBtn(self):
@@ -58,6 +62,6 @@ class MainController:
   def funcInit(self): 
     print('func init')
     self.__queryDateTimeInit()
-    # self.wigets.confirmBtn.clicked.connect(lambda:self.onClickConfirmBtn())
+    # self.wigets.confirmBtn.clicked.connect(self.onClickConfirmBtn)
     self.wigets.searchBtn.clicked.connect(lambda:self.onClickSearchBtn())
     self.wigets.option.clicked.connect(lambda:self.showOption())

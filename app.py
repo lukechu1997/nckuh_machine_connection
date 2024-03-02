@@ -12,18 +12,14 @@ if getattr(sys, 'frozen', False):
     extDataDir = sys._MEIPASS
 dotenv.load_dotenv(dotenv_path=os.path.join(extDataDir, '.env'))
 dotenv.set_key(dotenv_path=os.path.join(extDataDir, '.env'), key_to_set='EXT_DATA_DIR', value_to_set=extDataDir)
+os.environ['EXT_DATA_DIR'] = extDataDir
 basicPath = os.environ.get('BASIC_PATH')
 
 def initializeFolder() :
   if not os.path.exists(f'{basicPath}'):
     os.makedirs(f'{basicPath}')
-    print(f'{basicPath} created')
   if not os.path.exists(f'{basicPath}/logs'):
     os.mkdir(f'{basicPath}/logs')
-    print(f'{basicPath}/logs created')
-  if not os.path.exists(f'{basicPath}/dbs'):
-    os.mkdir(f'{basicPath}/dbs')
-    print(f'{basicPath}/dbs created')
 
 class MainWindow(QMainWindow):
   def __init__(self):
@@ -31,13 +27,13 @@ class MainWindow(QMainWindow):
     self.ui = mainDialog()
     self.ui.setupUi(self)
     self.mainController = MainController(self.ui)
-    self.fetchTestsThread()
+    # self.fetchTestsThread()
 # thread 1
 # query automation mdb every 15 mins
-  def fetchTestsThread(self):
-    self.thread = QThread()
-    self.thread.run = FetchTestsThread().main
-    self.thread.start()
+  # def fetchTestsThread(self):
+  #   self.thread = QThread()
+  #   self.thread.run = FetchTestsThread().main
+  #   self.thread.start()
 
 
 if __name__ == '__main__':

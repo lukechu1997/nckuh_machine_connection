@@ -1,15 +1,37 @@
 import sqlite3
 import os
+from sqlalchemy import create_engine, MetaData, select
+from sqlalchemy import Table, Boolean, Column, DateTime, Integer, String
+# from sqlalchemy.orm import declarative_base
 
-class SqliteModel:
+# Base = declarative_base()
+
+# class TestsTable(Base):
+#   __tablename__ = 'Tests'
+#   id = Column(Integer, primary_key=True),
+#   sect_no = Column(String),
+#   spec_kind = Column(String),
+#   spec_year = Column(String),
+#   spec_no = Column(String),
+#   sample_type = Column(String),
+#   request_no = Column(String),
+#   chart_no = Column(String),
+#   name = Column(String),
+#   sno = Column(String),
+#   bottle_id = Column(String),
+#   create_time = Column(DateTime),
+
+
+class SqliteModel():
   def __init__(self):
     # try:
-    #     conn = sqlite3.connect(os.environ.get('SQLITE_PATH'))
-    #     self.conn = conn
-    #     self.cursorObj = conn.cursor()
-    # except sqlite3.Error:
-    #     print('error!!!')
-    #     print(sqlite3.Error)
+    #   self.dbInit()
+    #   self.engine = create_engine(f'sqlite:///{os.environ.get('SQLITE_PATH')}', echo=True)
+    #   self.metadata = MetaData()
+    #   self.resultsTable = Table('results', self.metadata)
+    #   self.testsTable = Table('tests', self.metadata)
+    # except Exception as e:
+    #   print(e)
     self.__connectDB()
     self.dbInit()
     self.__disconnectDB()
@@ -28,11 +50,59 @@ class SqliteModel:
     self.conn.close()
 
   def dbInit(self):
-    self.cursorObj.execute('''
+    conn = sqlite3.connect(os.environ.get('SQLITE_PATH'))
+    cursorObj = conn.cursor()
+  #   self.testsTable = Table(
+  #     "tests",
+  #     self.metadata,
+  #     Column('id', Integer, primary_key=True),
+  #     Column('sect_no', String),
+  #     Column('spec_kind', String),
+  #     Column('spec_year', String),
+  #     Column('spec_no', String),
+  #     Column('sample_type', String),
+  #     Column('request_no', String),
+  #     Column('chart_no', String),
+  #     Column('name', String),
+  #     Column('sno', String),
+  #     Column('bottle_id', String),
+  #     Column('create_time', DateTime),
+  #   )
+  #   self.resultsTable = Table(
+  #     Column('id', Integer, primary_key=True),
+  #     Column('category', String),
+  #     Column('sample_no', String),
+  #     Column('sequence_no', String),
+  #     Column('sect_no', String),
+  #     Column('spec_kind', String),
+  #     Column('spec_year', String),
+  #     Column('spec_no', String),
+  #     Column('rack_id', String),
+  #     Column('position', String),
+  #     Column('sample_type', String),
+  #     Column('control_lot', String),
+  #     Column('manual_dilution', String),
+  #     Column('comment', String),
+  #     Column('analyte_no', String),
+  #     Column('count_value', String),
+  #     Column('concentration_value', String),
+  #     Column('judgment', String),
+  #     Column('remark', String),
+  #     Column('auto_dilution_ratio', String),
+  #     Column('cartridge_lot_no', String),
+  #     Column('substrate_lot_no', String),
+  #     Column('measurement_date', String),
+  #     Column('measuring_time', String),
+  #     Column('uploaded', Boolean),
+  #     Column('create_time', String),
+  #   )
+  #   self.metadata.create_all(self.engine)
+    cursorObj.execute('''
       CREATE TABLE if not exists tests(
         id INTEGER PRIMARY KEY,
         sect_no TEXT,
         spec_kind TEXT,
+        spec_year TEXT,
         spec_no TEXT,
         sample_type TEXT,
         request_no TEXT,
@@ -42,13 +112,14 @@ class SqliteModel:
         bottle_id TEXT,
         create_time DATETIME DEFAULT (datetime(CURRENT_TIMESTAMP, 'localtime'))
       );''')
-    self.cursorObj.execute('''
+    cursorObj.execute('''
       CREATE TABLE if not exists results(
         id INTEGER PRIMARY KEY,
         category TEXT,
         sample_no TEXT,
         sequence_no TEXT,
         patient_id TEXT,
+        spec_year TEXT,
         rack_id TEXT,
         position TEXT,
         sample_type TEXT,
@@ -70,9 +141,16 @@ class SqliteModel:
         create_time DATETIME DEFAULT (datetime(CURRENT_TIMESTAMP, 'localtime')),
         FOREIGN KEY (fk_test_id) REFERENCES tests(id)
       );''')
-    self.conn.commit()
+    # conn.commit()
+    # conn.close()
 
   def testsFindMany(self, startTime, endTime):
+    # with self.engine.connect() as connect:
+    #   data = connect.execute(
+    #     select(self.testsTable)
+    #     .where(self.testsTable.columns['create_time'].between(startTime, endTime))
+    #   )
+    #   return data.mappings().all()
     self.__connectDB()
     print(f"SELECT * FROM tests WHERE create_time BETWEEN '{startTime}' AND '{endTime}'")
     self.cursorObj.execute(f"SELECT * FROM tests WHERE create_time BETWEEN '{startTime}' AND '{endTime}'")
@@ -88,6 +166,12 @@ class SqliteModel:
     return dataList
   
   def resultsFindMany(self, startTime, endTime):
+    # with self.engine.connect() as connect:
+    #   data = connect.execute(
+    #     select(self.resultsTable)
+    #     .where(self.testsTable.columns['create_time'].between(startTime, endTime))
+    #   )
+    #   return data.mappings().all()
     self.__connectDB()
     self.cursorObj.execute(f"SELECT * FROM results WHERE create_time BETWEEN '{startTime}' AND '{endTime}'")
     names = [description[0] for description in self.cursorObj.description]
@@ -99,22 +183,11 @@ class SqliteModel:
 
     self.__disconnectDB()
     return dataList
-  
-  def updateResults(self, id, data):
-    self.__connectDB()
-    setStr = ','.join(map(lambda items: '='.join(items), data.items()))
-    self.cursorObj.execute(f'''
-      UPDATE results
-      SET {setStr}
-      WHERE ID = {id}
-    ''')
-    print(f'''
-      UPDATE results
-      SET {setStr}              
-    ''')
-    self.__disconnectDB()
 
   def insertTests(self, data):
+    # with self.engine.connect() as connect:
+    #   connect.execute(self.testsTable.insert(), data)
+    #   connect.commit()
     self.__connectDB()
     columns = "','".join(data.keys())
     values = "','".join(data.values())
@@ -125,6 +198,22 @@ class SqliteModel:
     self.__disconnectDB()
   
   def insertResults(self, data):
+    # print('insert results', data)
+    # resultsTable = Table("results", self.metadata)
+    # columnNamesList = resultsTable.columns.keys()
+    # print(columnNamesList)
+    # insertDict = {}
+    # for name in columnNamesList:
+    #   if name in ['id']:
+    #     pass
+    #   insertDict[name] = data[name]
+    
+    # print('insert data', insertDict)
+
+    # with self.engine.connect() as connect:
+    #   print(resultsTable.insert().values(insertDict))
+    #   connect.execute(resultsTable.insert(), insertDict)
+    #   connect.commit()
     self.__connectDB()
     columns = "','".join(data.keys())
     values = "','".join(data.values())
@@ -134,13 +223,6 @@ class SqliteModel:
     '''
     self.cursorObj.execute(sqlStr)
     self.__disconnectDB()
-  
-  def listTables(self):
-    self.__connectDB()
-    self.cursorObj.execute('SELECT name FROM sqlite_schema WHERE type ="table" AND name NOT LIKE "sqlite_%";')
-    tables = self.cursorObj.fetchall()
-    self.__disconnectDB()
-    return tables
   
 if __name__ == '__main__':
   print('sqlite connection')

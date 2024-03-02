@@ -1,4 +1,5 @@
 import logging
+import sys
 from ..model.sqliteModel import SqliteModel
 from ..model.mdbModel import MdbModel
 from datetime import datetime
@@ -23,7 +24,8 @@ class SerialHelper:
     return bytearray.fromhex('02' + processedData + bcc[2:].encode('ascii').hex())
 
   def __trimIncomingData(self, rawData):
-    data = rawData.replace(b'\x02', b'').split(b'\x03')[0]
+    data = rawData.split(b'\x02')[1].split(b'\x03')[0]
+
     return data.decode('utf-8')
 
   def main(self, rawData):
@@ -33,7 +35,6 @@ class SerialHelper:
         logging.info('[EOT]')
         if self.status == 'REQUEST':
           self.sendSingle('ENQ')
-          
         return
       case b'\x05':
         self.sendSingle('ACK')
@@ -46,14 +47,17 @@ class SerialHelper:
           self.sendStatusQuery()
         else:
           self.sendSingle('EOT')
-
         logging.info('[ACK]')
       case _:
+        if self.tempData == '' and b'\x02' not in rawData:
+          return
         self.tempData = self.tempData + rawData
         if b'\x03' in self.tempData:
           self.readComplicatedData(self.tempData)
+          self.tempData = b''
 
   def readComplicatedData(self, rawData):
+    logging.info(rawData)
     data = self.__trimIncomingData(rawData)
     match data[0]:
       case 'R':
@@ -103,30 +107,34 @@ class SerialHelper:
     
   def receiveQuery(self, data):
     dataDict = {
-      'message_id': data[1],
-      'analyzer_id': data[2],
-      'patient_id': data[3:29],
-      'rack_id': data[29:35],
-      'sample_no': data[35:38],
-      # 'sample_category': data[1]
+      'message_id': data[0],
+      'analyzer_id': data[1],
+      'patient_id': data[2:28],
+      # 'rack_id': data[29:35],
+      # 'sample_no': data[-1],
+      # 'sample_category': data[-1]
     }
     logging.info(data)
 
     barCode = dataDict['patient_id'].replace(' ', '')
 
     self.tempRequestData = self.mdb.testFindUnique({
-      'specKind': barCode[0:2],
-      'specYear': barCode[2:4],
-      'specNo': barCode[4:]
+      'specNo': barCode[2:8]
     })
-    self.mdb.testUpdate(self.tempRequestData['SUID'], 
-                        {
-                          'DOWNLOAD_TIME': datetime.now().strftime('%Y/%m/%d %H:%M:%S'),
-                          'STATE': 'P'
-                        })
 
     self.sendSingle('ACK')
     self.status = 'REQUEST'
+    # self.tempData = b''
+    
+    if len(self.tempRequestData.keys()) == 0:
+      return
+    
+    self.mdb.testUpdate(self.tempRequestData['SUID'], 
+                        {
+                          'TX_TIME': datetime.now(),
+                          'DOWNLOAD_TIME': datetime.now(),
+                          'STATE': 'P'
+                        })
 
   def receiveResult(self, data):
     self.sendSingle('ACK')
@@ -152,54 +160,71 @@ class SerialHelper:
       'cartridge_lot_no': data[102:106],
       'substrate_lot_no': data[106:110],
       'measurement_date': data[110:118],
-      'measuring_time': data[118:]
+      'measuring_time': data[118:],
+      'spec_year': datetime.now().strftime('%y'),
     }
 
     for key, value in dataDict.items():
       dataDict[key] = value.replace(' ', '')
-    logging.info(data)
+    logging.info(dataDict)
     self.sqlite.insertResults(dataDict)
-    testData = self.mdb.testFindUnique({
-      'specKind': dataDict['patient_id'][0:2],
-      'specYear': dataDict['patient_id'][2:4],
-      'specNo': dataDict['patient_id'][4:10]
-    })
-    self.mdb.resultInsert({
-      'SECT_NO': testData['SECT_NO'] if 'SECT_NO' in testData else '',
-      'SPEC_KIND': dataDict['patient_id'][0:2],
-      'SPEC_YEAR': dataDict['patient_id'][2:4],
-      'SPEC_NO': dataDict['patient_id'][4:10],
-      'SAMPLE_TYPE': testData['SAMPLE_TYPE'] if 'SAMPLE_TYPE' in testData else '',
-      'RERUN_COUNT': testData['RERUN_COUNT'] if 'RERUN_COUNT' in testData else 0,
-      'TX_TIME': testData['TX_TIME'] if 'TX_TIME' in testData else datetime.now(),
-      'REQUEST_NO': testData['REQUEST_NO'] if 'REQUEST_NO' in testData else '',
-      'CHART_NO': testData['CHART_NO'] if 'CHART_NO' in testData else '',
-      'NAME': testData['NAME'] if 'NAME' in testData else '',
-      'SNO': testData['SNO'] if 'SNO' in testData else '',
-      'BOTTLE_ID': '',
-      'TEST_NAME': '8210PIVKA-Ⅱ',
-      'TEST_VALUE': dataDict['count_value'],
-      'TRANS_VALUE': testData['TRANS_VALUE'] if 'TRANS_VALUE' in testData else '',
-      # 'MIC_VALUE': '',
-      'DILUTION': 1, 
-      'DILUTION_VALUE': '1',
-      'RACK_NO': dataDict['rack_id'],
-      'TUBE_NO': dataDict['position'],
-      # 'MACHINE_SNO': dataDict[],
-      # 'MACHINE_ID': dataDict[],
-      'ERROR_CODE': '',
-      'ERROR_MSG': '',
-      'TEST_CODE': 'PIVKA-Ⅱ',
-      # 'TEST_CODE_NAME': dataDict[],
-      'STATE': 'P',
-      'UPLOAD_TIME': datetime.now(),
-      'StartedTime': datetime.now(),
-      'CompletedTime': datetime.now()
-    })
-    if len(testData.keys()) != 0 and not testData['DOWNLOAD_TIME']:
-      self.mdb.testUpdate(testData['SUID'], {'STATE': 'P','DOWNLOAD_TIME': datetime.now().strftime('%Y/%m/%d %H:%M:%S')})
+    if dataDict['category'] == 'C':
+      specNo = 1 if int(dataDict['position']) % 2 == 1 else 2
+      testData = {
+        'SECT_NO': 'QC',
+        'SAMPLE_TYPE': 'Q',
+        'CHART_NO': dataDict['control_lot'],
+        'SPEC_NO': f'PIVKA-ⅡL{specNo}'
+      }
+    else:
+      testData = self.mdb.testFindUnique({
+        'specNo': dataDict['patient_id'][2:8]
+      }) 
+
+    if dataDict['concentration_value'] == '75000' and (dataDict['remark'] == '0000020004000000' or dataDict['remark'] == '0000000004000000' ):
+      dataDict['concentration_value'] = '>75000'
+
+    try:
+      self.mdb.resultInsert({
+        'SECT_NO': testData['SECT_NO'] if 'SECT_NO' in testData else dataDict['patient_id'][0:2],
+        'SPEC_KIND': testData['SPEC_KIND'] if 'SPEC_KIND' in testData else '',
+        'SPEC_YEAR': testData['SPEC_YEAR'] if 'SPEC_YEAR' in testData else datetime.now().strftime('%y'),
+        'SPEC_NO': dataDict['patient_id'][2:8] if dataDict['category'] != 'C' else testData['SPEC_NO'],
+        'SAMPLE_TYPE': testData['SAMPLE_TYPE'] if 'SAMPLE_TYPE' in testData else '',
+        'RERUN_COUNT': testData['RERUN_COUNT'] if 'RERUN_COUNT' in testData else 0,
+        'TX_TIME': testData['TX_TIME'] if 'TX_TIME' in testData else datetime.fromisoformat(dataDict['measurement_date'] + 'T' + dataDict['measuring_time']),
+        'REQUEST_NO': testData['REQUEST_NO'] if 'REQUEST_NO' in testData else '',
+        'CHART_NO': testData['CHART_NO'] if 'CHART_NO' in testData else '',
+        'NAME': testData['NAME'] if 'NAME' in testData else '',
+        'SNO': testData['SNO'] if 'SNO' in testData else '',
+        'BOTTLE_ID': '',
+        'TEST_NAME': '8210PIVKA-Ⅱ',
+        'TEST_VALUE': dataDict['concentration_value'],
+        'TRANS_VALUE': testData['TRANS_VALUE'] if 'TRANS_VALUE' in testData else '',
+        # 'MIC_VALUE': '',
+        'DILUTION': 1, 
+        'DILUTION_VALUE': '1',
+        'RACK_NO': dataDict['rack_id'],
+        'TUBE_NO': dataDict['position'],
+        # 'MACHINE_SNO': dataDict[],
+        'MACHINE_ID': 'G1200',
+        'ERROR_CODE': '',
+        'ERROR_MSG': '',
+        'TEST_CODE': 'PIVKA-Ⅱ',
+        'TEST_CODE_NAME': 'PIVKA-Ⅱ',
+        'STATE': 'P',
+        'UPLOAD_TIME': datetime.now(),
+        'StartedTime': datetime.fromisoformat(dataDict['measurement_date'] + 'T' + dataDict['measuring_time']),
+        'CompletedTime': datetime.now()
+      })
+      if dataDict['category'] != 'C' and (len(testData.keys()) != 0 and not testData['DOWNLOAD_TIME']):
+        self.mdb.testUpdate(testData['SUID'], {'STATE': 'P','DOWNLOAD_TIME': datetime.now()})
+    except Exception as e:
+      logging.critical('[serial helper] mdb insert fail')
+      logging.critical(e)
+      logging.critical(sys.exc_info())
     # reset tempData and status
-    self.tempData = b''
+    # self.tempData = b''
     self.status = 'IDLE'
 
   def receiveStatus(self, data):
@@ -211,6 +236,7 @@ class SerialHelper:
     logging.info(dataDect)
     self.sendSingle('ACK')
     self.status = 'IDLE'
+    # self.tempData = b''
 
   def sendSingle(self, type):
     match type:
