@@ -1,0 +1,7 @@
+db/*
+build
+dist
+libs/*/__pycache__
+G1200
+Automation.mdb
+note.txt
