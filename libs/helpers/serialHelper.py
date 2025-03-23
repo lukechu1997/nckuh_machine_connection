@@ -168,6 +168,38 @@ class SerialHelper:
       dataDict[key] = value.replace(' ', '')
     logging.info(dataDict)
     self.sqlite.insertResults(dataDict)
+  
+    match dataDict['analyte_no']:
+      case "11":
+        self.__receivedPivka(dataDict)
+      case "29":
+        self.__receivedHbcrag(dataDict)
+      case _:
+        logging.debug(f"There is an analyte no not handled, analyte no {dataDict['analyte_no']}")
+    
+    self.status = 'IDLE'
+
+  def receiveStatus(self, data):
+    dataDect = {
+      'message_id': data[0], 
+      'analyzer_id': data[1], 
+      'status': data[2]
+    }
+    logging.info(dataDect)
+    self.sendSingle('ACK')
+    self.status = 'IDLE'
+    # self.tempData = b''
+
+  def sendSingle(self, type):
+    match type:
+      case 'ACK':
+        self.serial.write(b'\x06')
+      case 'EOT':
+        self.serial.write(b'\x04')
+      case 'ENQ':
+        self.serial.write(b'\x05')
+
+  def __receivedPivka(self, dataDict):
     if dataDict['category'] == 'C':
       specNo = 1 if int(dataDict['position']) % 2 == 1 else 2
       testData = {
@@ -181,7 +213,7 @@ class SerialHelper:
         'specNo': dataDict['patient_id'][2:8]
       }) 
 
-    if dataDict['concentration_value'] == '75000' and (dataDict['remark'] == '0000020004000000' or dataDict['remark'] == '0000000004000000' ):
+    if dataDict['concentration_value'] == '75000' and dataDict['remark'][9] == '4':
       dataDict['concentration_value'] = '>75000'
 
     try:
@@ -223,29 +255,60 @@ class SerialHelper:
       logging.critical('[serial helper] mdb insert fail')
       logging.critical(e)
       logging.critical(sys.exc_info())
-    # reset tempData and status
-    # self.tempData = b''
-    self.status = 'IDLE'
 
-  def receiveStatus(self, data):
-    dataDect = {
-      'message_id': data[0], 
-      'analyzer_id': data[1], 
-      'status': data[2]
-    }
-    logging.info(dataDect)
-    self.sendSingle('ACK')
-    self.status = 'IDLE'
-    # self.tempData = b''
+  def __receivedHbcrag(self, dataDict):
+    if dataDict['category'] == 'C':
+      specNo = 1 if int(dataDict['position']) % 2 == 1 else 2
+      testData = {
+        'SECT_NO': 'QC',
+        'SAMPLE_TYPE': 'Q',
+        'CHART_NO': dataDict['control_lot'],
+        'SPEC_NO': f'PIVKA-ⅡL{specNo}' # TBD
+      }
+    else:
+      testData = self.mdb.testFindUnique({
+        'specNo': dataDict['patient_id'][2:8]
+      }) 
 
-  def sendSingle(self, type):
-    match type:
-      case 'ACK':
-        self.serial.write(b'\x06')
-      case 'EOT':
-        self.serial.write(b'\x04')
-      case 'ENQ':
-        self.serial.write(b'\x05')
+    try:
+      self.mdb.resultInsert({
+        'SECT_NO': testData['SECT_NO'] if 'SECT_NO' in testData else dataDict['patient_id'][0:2],
+        'SPEC_KIND': testData['SPEC_KIND'] if 'SPEC_KIND' in testData else '',
+        'SPEC_YEAR': testData['SPEC_YEAR'] if 'SPEC_YEAR' in testData else datetime.now().strftime('%y'),
+        'SPEC_NO': dataDict['patient_id'][2:8] if dataDict['category'] != 'C' else testData['SPEC_NO'],
+        'SAMPLE_TYPE': testData['SAMPLE_TYPE'] if 'SAMPLE_TYPE' in testData else '',
+        'RERUN_COUNT': testData['RERUN_COUNT'] if 'RERUN_COUNT' in testData else 0,
+        'TX_TIME': testData['TX_TIME'] if 'TX_TIME' in testData else datetime.fromisoformat(dataDict['measurement_date'] + 'T' + dataDict['measuring_time']),
+        'REQUEST_NO': testData['REQUEST_NO'] if 'REQUEST_NO' in testData else '',
+        'CHART_NO': testData['CHART_NO'] if 'CHART_NO' in testData else '',
+        'NAME': testData['NAME'] if 'NAME' in testData else '',
+        'SNO': testData['SNO'] if 'SNO' in testData else '',
+        'BOTTLE_ID': '',
+        'TEST_NAME': '', # TBD
+        'TEST_VALUE': dataDict['concentration_value'],
+        'TRANS_VALUE': testData['TRANS_VALUE'] if 'TRANS_VALUE' in testData else '',
+        # 'MIC_VALUE': '',
+        'DILUTION': 1, 
+        'DILUTION_VALUE': '1',
+        'RACK_NO': dataDict['rack_id'],
+        'TUBE_NO': dataDict['position'],
+        # 'MACHINE_SNO': dataDict[],
+        'MACHINE_ID': 'G1200',
+        'ERROR_CODE': '',
+        'ERROR_MSG': '',
+        'TEST_CODE': '', # TBD
+        'TEST_CODE_NAME': '', # TBD
+        'STATE': 'P',
+        'UPLOAD_TIME': datetime.now(),
+        'StartedTime': datetime.fromisoformat(dataDict['measurement_date'] + 'T' + dataDict['measuring_time']),
+        'CompletedTime': datetime.now()
+      })
+      if dataDict['category'] != 'C' and (len(testData.keys()) != 0 and not testData['DOWNLOAD_TIME']):
+        self.mdb.testUpdate(testData['SUID'], {'STATE': 'P','DOWNLOAD_TIME': datetime.now()})
+    except Exception as e:
+      logging.critical('[serial helper] mdb insert fail')
+      logging.critical(e)
+      logging.critical(sys.exc_info())
 
 if __name__ == '__main__':
     print('serial helper')
