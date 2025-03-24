@@ -1,0 +1,10 @@
+dotenv==0.9.9
+greenlet==3.1.1
+pyodbc==5.2.0
+PyQt6==6.8.1
+PyQt6-Qt6==6.8.2
+PyQt6_sip==13.10.0
+python-dotenv==1.0.1
+SQLAlchemy==2.0.39
+sqlalchemy-access==1.0.8
+typing_extensions==4.12.2
